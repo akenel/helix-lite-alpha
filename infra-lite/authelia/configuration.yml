@@ -1,0 +1,24 @@
+host: 0.0.0.0
+port: 9091
+log:
+  level: debug
+
+jwt_secret: "super_secret_jwt"
+
+authentication_backend:
+  file:
+    path: /config/users_database.yml
+
+session:
+  secret: "another_super_secret"
+  expiration: 1h
+  inactivity: 5m
+  domain: localhost
+
+storage:
+  local:
+    path: /config/db.sqlite3
+
+notifier:
+  filesystem:
+    filename: /config/notification.txt

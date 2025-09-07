@@ -1,0 +1,11 @@
+# Ignore environment files that may contain secrets
+.env
+
+# Ignore logs
+*.log
+
+# Ignore IDE files, specific to Visual Studio Code in this case
+.vscode/
+
+# Ignore Docker-related temporary files
+**/docker-data/

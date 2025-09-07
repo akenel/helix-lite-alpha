@@ -1,0 +1,7 @@
+# Profile: core
+# Add Compose service entries here for the 'core' profile.
+# Example:
+# services:
+#   myservice:
+#     image: busybox
+#     profiles: ["core"]

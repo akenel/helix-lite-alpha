@@ -1,0 +1,7 @@
+# Profile: lms
+# Add Compose service entries here for the 'lms' profile.
+# Example:
+# services:
+#   myservice:
+#     image: busybox
+#     profiles: ["lms"]

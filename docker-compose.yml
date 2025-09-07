@@ -1,0 +1,327 @@
+# docker-compose.yml
+# PoC middleware stack for laptop/DO droplet.
+# Lightweight defaults, comments inline.
+
+services:
+
+  traefik:
+      image: traefik:v2.11
+      profiles: ["core"]
+      container_name: traefik
+      restart: unless-stopped
+      command:
+        - --api.insecure=true
+        - --providers.docker=true
+        - --providers.file.directory=/etc/traefik/dynamic
+        - --providers.file.watch=true
+        - --entrypoints.web.address=:80
+        - --entrypoints.websecure.address=:443
+        - --log.level=INFO
+        - --providers.docker.exposedbydefault=false
+        - --api.dashboard=true
+      ports:
+        - "8088:80"     # http
+        - "8443:443"    # https
+        - "8080:8080"   # Traefik dashboard
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+        - ./traefik/dynamic:/etc/traefik/dynamic:ro
+        - ./traefik/certs:/etc/traefik/certs:ro # We will place the certs here
+      networks:
+        - alpinenet
+      mem_limit: 300m
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8080/ping", "traefik", "healthcheck", "--ping"] # Traefik health endpoint
+        interval: 300s
+        timeout: 10s
+        retries: 3
+        start_period: 150s # Give Traefik a bit of time to start up
+  vault:
+    image: vault:1.13.2
+    profiles: ["core"]
+    container_name: vault
+    restart: unless-stopped
+    environment:
+      VAULT_ADDR: http://127.0.0.1:8200
+    command: "server -dev -dev-root-token-id=root"   # dev mode only
+    ports:
+      - "8200:8200"
+    volumes:
+      - vault_data:/vault/file
+    networks:
+      - alpinenet
+    mem_limit: 300m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8200/v1/sys/health"] # Vault health endpoint
+      interval: 300s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # Give Vault a bit of time to start up
+
+  minio:
+    image: minio/minio:latest
+    profiles: ["extra"]
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - alpinenet
+    mem_limit: 400m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"] # MinIO health endpoint
+      interval: 300s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # Give MinIO a bit of time to start up
+  postgres:
+    image: postgres:17
+    profiles: ["core"]
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - alpinenet
+    mem_limit: 700m
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "pg_isready", "-h", "localhost", "-U", "${POSTGRES_USER:-postgres}"] # Check if Postgres is ready
+      interval: 300s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # Give Postgres a bit of time to start up
+  mongo:
+    image: mongo:6.0
+    profiles: ["extra"]
+    container_name: mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - alpinenet
+    mem_limit: 700m
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"] # Check if MongoDB is responsive
+      interval: 300s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # Give MongoDB a bit of time to start up
+  redis:
+    image: redis:7-alpine
+    profiles: ["core"]
+    container_name: redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1"]
+    networks:
+      - alpinenet
+    mem_limit: 200m
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"] # Check if Redis is responsive
+      interval: 300s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # Give Redis a bit of time to start up
+  n8n:
+    image: n8nio/n8n:latest
+    profiles: ["core"]
+    container_name: n8n
+    restart: unless-stopped
+    volumes:
+        - /root/helix-vps/podcast-studio:/data/prompts
+        - n8n_data:/data   # persist n8n data
+        - ./n8n/output-files:/n8n-output-results 
+        - ./reports:/reports  
+        - ./podcast-studio/oracle-prompts:/podcast-studio/oracle-prompts:ro
+    # Important n8n environment variables for production use 
+    environment:
+      DB_TYPE: postgres
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      N8N_HOST: n8n.helix.local
+      N8N_PORT: 5678          # keep this internal port
+      N8N_PROTOCOL: http      # internal traffic stays http
+      WEBHOOK_URL: https://n8n.helix.local/   # external URL override
+      GENERIC_TIMEZONE: "Europe/Zurich"
+      N8N_BASIC_AUTH_ACTIVE: "false"
+      N8N_EDITOR_BASE_URL: https://n8n.helix.local/
+      N8N_PUBLIC_API_BASE_URL: https://api.helix.local/sap/hooks
+      N8N_ALLOW_UNAUTHENTICATED_WEBHOOKS: "true"  # be careful with this in prod!
+      N8N_LOG_LEVEL: "info"
+      N8N_TELEMETRY_ENABLED: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_USAGE_TRACKER_DISABLED: "true"
+      N8N_NODE_PACKAGE_PREFIXES: "@n8n-nodes-base,@n8n-nodes-community"
+      N8N_REDIS_HOST: redis
+      N8N_REDIS_PORT: 6379
+      N8N_REDIS_DB: 0
+      N8N_REDIS_PASSWORD: ""
+      NODE_ENV: production
+      TZ: Europe/Zurich
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - alpinenet
+    mem_limit: 700m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5678/health"] # n8n default port is 5678
+      interval: 300s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # n8n can take a little longer to start
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    profiles: ["core"]
+    container_name: portainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    networks:
+      - alpinenet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/api/status"] # Portainer health endpoint
+      interval: 300s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # Give Portainer a bit of time to start up
+    mem_limit: 200m
+  # Ollama with TinyLlama (local lightweight dev mode)
+  ollama-tiny:
+    image: ollama/ollama:latest
+    profiles: ["tiny"]
+    container_name: ollama-tiny
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"   # Tiny exposed on 11434
+    networks:
+      - alpinenet
+    environment:
+      OLLAMA_MODEL: "tinyllama"
+    command: >
+      sh -c "ollama serve & sleep 5 && ollama pull tinyllama && tail -f /dev/null"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/v1/models"] # Check if Ollama TinyLlama is responsive
+      interval: 300s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # Give Ollama TinyLlama a bit of time to start up 
+  # Ollama Turbo (simulated GPU-backed mode)
+  ollama-turbo:
+    image: ollama/ollama:latest
+    profiles: ["turbo"]
+    container_name: ollama-turbo
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - alpinenet
+    environment:
+      OLLAMA_MODEL: "turbo"
+    command: >
+      sh -c "ollama serve & sleep 5 && ollama pull turbo && tail -f /dev/null"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/v1/models"] # Check if Ollama Turbo is responsive
+      interval: 300s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # Give Ollama Turbo a bit of time to start up
+    mem_limit: 4g # Turbo needs more memory
+  web-ui:
+    image: nginx:stable-alpine
+    profiles: ["core"]
+    container_name: demo-ui
+    restart: unless-stopped
+    volumes:
+      - ./ui/:/usr/share/nginx/html:ro
+      - ./reports:/reports:ro
+      # Result: demo-ui serves files under http://<server-ip>:3000/reports/<file>.
+    ports:
+      - "3000:80"
+    networks:
+      - alpinenet
+    mem_limit: 150m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"] # Nginx health endpoint
+      interval: 300s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # Give Nginx a bit of time to start up  
+  kong:
+    image: kong:3.6
+    container_name: kong
+    profiles:
+      - core
+    ports:
+      - "8000-8001:8000-8001" # HTTP API
+      # - "8443-8444:8443-8444" # HTTPS API
+      - "8002:8002"           # Proxy (if needed, often managed by Traefik)
+    volumes:
+      - ./kong/config:/etc/kong/
+      # Add this line to mount your kong.yaml file
+      - ./kong/config/kong.yaml:/etc/kong/kong.yaml:ro # Mount kong.yaml
+    environment:
+          KONG_DATABASE: "off"
+          KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yaml
+          KONG_PROXY_LISTEN: "0.0.0.0:8000"
+          KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+          KONG_LOG_LEVEL: "notice"
+          KONG_PROXY_ACCESS_LOG: "/dev/stdout"
+          KONG_PROXY_ERROR_LOG: "/dev/stderr"
+          KONG_ADMIN_ACCESS_LOG: "/dev/stdout"
+          KONG_ADMIN_ERROR_LOG: "/dev/stderr"
+    depends_on:
+      - traefik
+      - postgres
+    healthcheck:
+      test: ["CMD", "kong", "health", "curl", "-f", "http://localhost:8001/status"] # Check the admin API status
+      interval: 1200s
+      timeout: 5s
+      retries: 3
+      start_period: 60s # Give Kong a bit of time to start up
+    restart: unless-stopped
+    mem_limit: 500m # Adjust based on your needs
+
+    networks:
+      - alpinenet
+
+networks:
+  alpinenet:
+    driver: bridge
+
+volumes:
+  minio_data:
+  pg_data:
+  mongo_data:
+  ollama_data:
+  portainer_data:
+  redis_data:
+  vault_data:
+  kong_data:
+  traefik_data:
+  traefik_certs:
+  n8n_data:

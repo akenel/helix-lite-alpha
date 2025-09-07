@@ -1,0 +1,7 @@
+# Profile: integration
+# Add Compose service entries here for the 'integration' profile.
+# Example:
+# services:
+#   myservice:
+#     image: busybox
+#     profiles: ["integration"]

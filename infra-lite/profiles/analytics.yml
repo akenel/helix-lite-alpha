@@ -1,0 +1,7 @@
+# Profile: analytics
+# Add Compose service entries here for the 'analytics' profile.
+# Example:
+# services:
+#   myservice:
+#     image: busybox
+#     profiles: ["analytics"]
