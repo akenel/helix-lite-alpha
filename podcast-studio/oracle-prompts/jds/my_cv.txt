@@ -1,0 +1,93 @@
+Angelo Kenel | Senior Application Integration Developer.md
+1 of 4
+https://dillinger.io/factory/fetch_html
+Angelo Kenel
+Mattenweg 5, Beckenried, Nidwalden CH-6375 | +41 79 828 2841 |
+theSAPspecialist@gmail.com | LinkedIn Proﬁle
+Senior Application Integration Developer
+SAP & Azure Integration Engineer
+Highly accomplished Integration Engineer with over 20 years of hands-on
+experience in designing, developing, and implementing complex integration
+solutions. Proven expertise in establishing robust data ﬂows to optimize the
+interaction between enterprise applications, including SAP S/4HANA, SAP PO,
+and external systems like Salesforce. Adept at leveraging modern iPaaS solutions
+like Microsoft Azure (Logic Apps, API Management) to build scalable and secure
+integration platforms. Dual Swiss-Canadian citizen with strong English and
+German language skills.
+PROFESSIONAL EXPERIENCE
+Senior Integration Developer | Swiss Life, Zürich CH
+July 2019 – January 2024 (Full-Time Permanent Employee)
+• Led the design and development of end-to-end integration solutions,
+establishing data ﬂows between SAP PO 7.5 and external non-SAP systems
+via SOAP, REST, and sFTP adapters.
+• Developed and implemented a robust and scalable solution for secure
+document transfer, utilizing Azure Logic Apps and Azure MsGraph to
+replace legacy processes and support digital transformation initiatives.
+• Conﬁgured and managed Azure API Management (APIM) for the
+import/export of REST APIs and WSDLs, enabling secure HTTP Request
+05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md
+2 of 4
+https://dillinger.io/factory/fetch_html
+triggers with certiﬁcate-based and SAP OAuth 2.0 connections.
+• Designed and implemented a streamlined architecture to bypass
+traditional middleware, using ABAP Web Services and SOAManager to
+deliver payloads directly to Azure Logic Apps as the primary iPaaS.
+• Collaborated with cross-functional teams to ensure seamless
+integration and provide expert technical support.
+• Troubleshot and resolved complex integration issues, ensuring optimal
+system performance and reliability for ﬁnance and HR teams.
+Integration Engineer | Deutsche Börse Group, Luxembourg LU
+January 2019 – July 2019 (Contracting Services)
+• Developed new integration processes ( iFlows ) using Eclipse NWDS on
+PO 7.4, employing XML-SOAP and JSON-REST adapters to integrate SAP
+CRM with in-house banking applications.
+• Collaborated with Networking and Basis teams to secure HTTP
+connections and developed Service Interface ABAP proxies for end-to-end
+RESTful Web Service calls.
+Integration Project Manager | CMA-CGM, Marseille FR
+September 2018 – October 2018 (Contracting Services)
+• Spearheaded a highly successful proof-of-concept and UAT
+implementation for intermodal address enrichment, leveraging RESTful
+web service APIs to integrate Geocoding Info System data into SAP TM.
+• Delivered two complex Technical Booking interfaces using internal
+platforms and the SAP PO RESTful web service API Adapter, integrating
+data into SAP TM via AIF & Event Management.
+SKILLS & EXPERTISE
+Integration Technologies & APIs
+05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md
+3 of 4
+https://dillinger.io/factory/fetch_html
+• API Management Platforms: Azure API Management (APIM)
+• Integration Platforms (iPaaS): Azure Logic Apps, SAP Process
+Orchestration (PO/PI)
+• Integration Methodologies: RESTful Architecture, SOAP, JSON, XML,
+B2B & A2A
+• Security Protocols: OAuth 2.0, Certiﬁcates, SSL, sFTP, AS2
+• Middleware: SAP PI/PO, ABAP Web Services
+Enterprise Systems & Solutions
+• SAP: S/4HANA, ECC, BW, TM, PI/PO, HANA
+• Cloud: Microsoft Azure (Virtual Machines, ANF, Backup, ExpressRoute, Key
+Vault, MsGraph)
+• Databases: SAP HANA
+• Other Systems: Experience integrating with Salesforce and other non-SAP
+systems (via REST/SOAP).
+Methodology & Soft Skills
+• Problem-Solving: Proven ability to analyze complex integration challenges
+and propose eﬀective, simpliﬁed solutions (e.g., bypassing middleware).
+• Project Lifecycle Management: Full lifecycle experience including
+analysis, design, development, testing, and monitoring.
+• Technical Leadership & Mentorship: Experienced in leading technical
+workshops, discussions, and providing support.
+• Communication & Collaboration: Strong communication skills with both
+technical and non-technical stakeholders.
+• Methodology: Independent and structured way of working, analytical
+thinking.
+EDUCATION & CERTIFICATIONS
+• Application Consultant Certiﬁcation - ABAP Workbench for SAP System
+05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md
+4 of 4
+https://dillinger.io/factory/fetch_html
+R/3 Release 4.0 | SAP, Toronto CA (2000)
+• 3 Year Computer Systems Co-Op Diploma | Mohawk College, Hamilton
+CA (1985)
+05/09/2025, 14:56

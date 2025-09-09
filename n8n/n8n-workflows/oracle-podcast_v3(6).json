@@ -1,0 +1,347 @@
+{
+  "name": "oracle-podcast_v3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "oracle-podcast_v3",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b9cb23c2-336c-4a7a-8e2c-a46842ececd5",
+      "name": "🎯 Webhook  Input",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        400,
+        -144
+      ],
+      "webhookId": "oracle-podcast-studio"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "processing_id",
+              "value": "=podcast_{{ DateTime.now().toUnixInteger() }}_{{ $json.body.name.toLowerCase().replace(/\\s+/g, '_') }}"
+            },
+            {
+              "name": "guest_name",
+              "value": "={{ $json.body.name }}"
+            },
+            {
+              "name": "guest_email",
+              "value": "={{ $json.body.email }}"
+            },
+            {
+              "name": "profile_text",
+              "value": "={{ $json.body.profile_text }}"
+            },
+            {
+              "name": "job_description",
+              "value": "={{ $json.body.job_description || 'Professional' }}"
+            },
+            {
+              "name": "prompt_type",
+              "value": "={{ $json.body.prompt_type || 'general' }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ DateTime.now().toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a4d2926c-fbd6-4ac4-ae81-f10774b4d302",
+      "name": "🔍 Data Processor",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        624,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "filePath": "=/podcast-studio/oracle-prompts/{{ $json.prompt_type }}.json"
+      },
+      "id": "ac4bbcf7-3abc-4363-9247-a272eaecddf4",
+      "name": "🔮 Oracle Prompt Loader",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        848,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Load and process oracle prompt\nconst inputData = $input.first().json;\n\n// FIX: This is the corrected way to access the binary data.\n// $input.first() gets the single item from the Oracle Prompt Loader node.\n// .binary then gives you access to the binary data object.\nconst binaryData = $input.first().binary;\nconsole.log(binaryData);\n\ntry {\n  // Read the oracle prompt file.\n  // The key for the binary file is often the filename. We can get it dynamically.\n  const binaryKey = Object.keys(binaryData)[0];\n  const oracleFile = binaryData[binaryKey];\n\n  // This line is now fixed because 'oracleFile.data' correctly points to the binary data.\n  const oracleContent = Buffer.from(oracleFile.data, 'base64').toString('utf8');\n  const oraclePrompt = JSON.parse(oracleContent);\n  \n  // Build the prompt based on oracle template\n  let finalPrompt;\n  \n  if (inputData.prompt_type === 'corporate_climber') {\n    finalPrompt = `Create a professional podcast interview prep package for:\n\nName: ${inputData.guest_name}\nEmail: ${inputData.guest_email}\nProfile: ${inputData.profile_text}\nRole: ${inputData.job_description}\n\nGenerate a CORPORATE CLIMBER style interview package focusing on:\n- Executive leadership development\n- Strategic decision-making and business impact\n- Team management and organizational growth\n- Boardroom presence and corporate excellence\n\nReturn ONLY valid JSON in this exact format:\n{\n  \"episode_title\": \"Executive leadership focused title\",\n  \"guest_bio\": \"Professional biography emphasizing leadership credentials\",\n  \"leadership_story_1\": \"Key leadership achievement with business impact\",\n  \"leadership_story_2\": \"Strategic decision that drove results\",\n  \"team_impact_story\": \"Team development or organizational transformation\",\n  \"question_1\": \"Strategic leadership and vision question\",\n  \"question_2\": \"Team management and people development question\",\n  \"question_3\": \"Business strategy and market positioning question\",\n  \"professional_bio\": \"Extended executive summary with quantified achievements\",\n  \"talking_points\": \"Key discussion points for executive-level interview\"\n}\n\nFocus on leadership impact, strategic thinking, business results, and executive presence.`;\n  } else {\n    // Default prompt\n    finalPrompt = `Create a professional podcast episode package for:\n\nName: ${inputData.guest_name}\nProfile: ${inputData.profile_text}\nRole: ${inputData.job_description}\n\nReturn valid JSON only:\n{\n\"episode_title\": \"title\",\n\"guest_bio\": \"bio\",\n\"industry_focus\": \"industry\",\n\"win_story_1\": \"story 1\",\n\"win_story_2\": \"story 2\",\n\"question_1\": \"question?\",\n\"question_2\": \"question?\", \n\"question_3\": \"question?\",\n\"key_insights\": [\"insight1\", \"insight2\", \"insight3\"],\n\"episode_summary\": \"summary\"\n}`;\n  }\n  \n  // Return combined data\n  return [{\n    json: {\n      ...inputData,\n      oracle_prompt: oraclePrompt,\n      final_prompt: finalPrompt,\n      oracle_loaded: true\n    }\n  }];\n  \n} catch (error) {\n  // Fallback if oracle file not found or parsing failed\n  const fallbackPrompt = `Create a professional podcast episode package for:\n\nName: ${inputData.guest_name}\nProfile: ${inputData.profile_text}\nRole: ${inputData.job_description}\n\nReturn valid JSON only:\n{\n\"episode_title\": \"title\",\n\"guest_bio\": \"bio\",\n\"industry_focus\": \"industry\",\n\"win_story_1\": \"story 1\",\n\"win_story_2\": \"story 2\",\n\"question_1\": \"question?\",\n\"question_2\": \"question?\", \n\"question_3\": \"question?\",\n\"key_insights\": [\"insight1\", \"insight2\", \"insight3\"],\n\"episode_summary\": \"summary\"\n}`;\n  \n  return [{\n    json: {\n      ...inputData,\n      final_prompt: fallbackPrompt,\n      oracle_loaded: false,\n      oracle_error: error.message\n    }\n  }];\n}"
+      },
+      "id": "93152ec8-9609-4503-9b59-9043fb7b8f24",
+      "name": "🔧 Prompt Builder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🎯 CHUCK ACADEMY - ULTIMATE ERROR-AS-FEATURE PROCESSOR 💪\nconst inputData = items[0].json;\nconst aiResponse = inputData.output || inputData.response || inputData.content || inputData.text;\n\n// Debug: log what we received\nconsole.log('🔍 AI Response received:', aiResponse);\nconsole.log('📊 Input data keys:', Object.keys(inputData));\n\n// 🚨 CHUCK ACADEMY TRIGGERS:\n// 1. No AI response\n// 2. AI parsing fails\n// 3. Invalid JSON structure\n// 4. AI returns garbage (like Slack docs)\n\nfunction generateChuckAcademy(userData, errorDetails) {\n  // 🎲 Chuck Norris Academy Content Generator\n  const chuckJokes = [\n    \"Chuck Norris doesn't need a resume. Jobs apply to him.\",\n    \"When Chuck Norris updates his LinkedIn, the servers thank him.\",\n    \"Chuck Norris once got a job by staring at the application form.\",\n    \"HR departments exist because Chuck Norris allows them to.\",\n    \"Chuck Norris doesn't interview for jobs. Jobs interview for Chuck Norris.\",\n    \"When Chuck Norris enters a career fair, all the companies line up for him.\",\n    \"Chuck Norris's career advice: Be Chuck Norris. Everything else is optional.\",\n    \"The only networking Chuck Norris needs is a roundhouse kick.\",\n    \"Chuck Norris doesn't have a career. Careers have Chuck Norris.\",\n    \"When Chuck Norris submits a resume, it's automatically accepted by the universe.\"\n  ];\n  \n  const careerAdvice = [\n    \"🎯 Pro Tip: Even when AI fails, YOU don't have to. Keep pushing forward!\",\n    \"💡 Career Wisdom: The best professionals adapt when technology doesn't work.\",\n    \"🚀 Success Secret: Turn every setback into a comeback story.\",\n    \"⚡ Power Move: Use failures as learning opportunities to stand out.\",\n    \"🎪 Reality Check: If our AI can't handle your awesomeness, imagine what employers will think!\"\n  ];\n  \n  const careerLinks = [\n    \"🔗 LinkedIn Career Advice: https://linkedin.com/advice/career\",\n    \"📚 Harvard Business Review: https://hbr.org/topic/career-planning\",\n    \"💼 Indeed Career Guide: https://indeed.com/career-advice\",\n    \"🎯 Glassdoor Career Insights: https://glassdoor.com/blog/career-advice\",\n    \"🚀 Forbes Career Tips: https://forbes.com/careers\",\n    \"💡 Monster Career Advice: https://monster.com/career-advice\",\n    \"⭐ The Muse Career Guide: https://themuse.com/advice\",\n    \"🎪 CareerBuilder Resources: https://careerbuilder.com/advice\",\n    \"🔥 Fast Company Career Tips: https://fastcompany.com/section/career\",\n    \"💪 Entrepreneur Career Growth: https://entrepreneur.com/topic/career\"\n  ];\n  \n  // Random selections for uniqueness\n  const randomJoke = chuckJokes[Math.floor(Math.random() * chuckJokes.length)];\n  const randomAdvice = careerAdvice[Math.floor(Math.random() * careerAdvice.length)];\n  const randomLinks = careerLinks.sort(() => 0.5 - Math.random()).slice(0, 3);\n  \n  // Generate industry-specific career suggestions\n  const profile = userData.profile_text || '';\n  const jobDesc = userData.job_description || '';\n  let careerSuggestions = [];\n  \n  if (profile.toLowerCase().includes('banking') || profile.toLowerCase().includes('finance')) {\n    careerSuggestions = ['Financial Analyst', 'Investment Banker', 'Risk Manager', 'Portfolio Manager', 'Financial Advisor'];\n  } else if (profile.toLowerCase().includes('tech') || profile.toLowerCase().includes('software')) {\n    careerSuggestions = ['Software Engineer', 'Product Manager', 'DevOps Engineer', 'Data Scientist', 'UX Designer'];\n  } else if (profile.toLowerCase().includes('marketing') || profile.toLowerCase().includes('sales')) {\n    careerSuggestions = ['Digital Marketing Manager', 'Sales Director', 'Brand Manager', 'Content Strategist', 'Growth Hacker'];\n  } else {\n    careerSuggestions = ['Project Manager', 'Business Analyst', 'Operations Manager', 'Consultant', 'Team Lead'];\n  }\n  \n  return {\n    // Original user data (always preserved)\n    processing_id: userData.processing_id,\n    guest_name: userData.guest_name,\n    guest_email: userData.guest_email,\n    profile_text: userData.profile_text,\n    job_description: userData.job_description,\n    prompt_type: userData.prompt_type,\n    timestamp: userData.timestamp,\n    \n    // Chuck Academy content\n    episode_title: `🎪 Chuck Norris Academy: ${userData.guest_name}'s Career Adventure`,\n    guest_bio: `Meet ${userData.guest_name}, a professional who's about to get some legendary career advice from Chuck Norris himself!`,\n    chuck_joke: randomJoke,\n    chuck_advice: randomAdvice,\n    career_suggestions: careerSuggestions,\n    career_links: randomLinks,\n    \n    // Error context (educational)\n    error_context: errorDetails,\n    ai_training_tip: \"🤖 AI Training Tip: Be specific with your experience and clear about your goals. The more details you provide, the better results you'll get!\",\n    \n    // Professional encouragement\n    encouragement: `Hey ${userData.guest_name}! Even when AI gets confused, your career potential is crystal clear. Let's turn this tech hiccup into your success story!`,\n    \n    // Metadata\n    content_type: \"chuck_academy\",\n    ai_model: \"chuck_norris_wisdom_v1.0\",\n    generation_timestamp: new Date().toISOString(),\n    content_quality: \"legendary\",\n    automation_level: \"100% Chuck Approved\",\n    oracle_loaded: userData.oracle_loaded || false,\n    \n    // Academy specific\n    academy_session: Math.floor(Math.random() * 1000) + 1,\n    chuck_rating: \"⭐⭐⭐⭐⭐\",\n    user_level: \"Career Warrior in Training\"\n  };\n}\n\n// 🎯 MAIN PROCESSING LOGIC\nif (!aiResponse || aiResponse.trim() === '') {\n  // No AI response - Chuck Academy time!\n  console.log('🎪 Triggering Chuck Academy: No AI response');\n  return [{\n    json: generateChuckAcademy(inputData, \"AI didn't respond - maybe it was intimidated by your awesomeness!\")\n  }];\n}\n\ntry {\n  // Try to parse AI response\n  let cleanedResponse = aiResponse ? aiResponse.trim() : '';\n  \n  // Remove markdown code blocks\n  cleanedResponse = cleanedResponse.replace(/```json\\n?/g, '').replace(/```\\n?/g, '');\n  \n  // Check for obvious garbage responses (like Slack documentation)\n  if (cleanedResponse.toLowerCase().includes('slack') || \n      cleanedResponse.toLowerCase().includes('webhook') ||\n      cleanedResponse.toLowerCase().includes('token') ||\n      cleanedResponse.length > 2000) {\n    console.log('🎪 Triggering Chuck Academy: AI returned garbage');\n    return [{\n      json: generateChuckAcademy(inputData, \"AI got confused and started talking about Slack - time for Chuck wisdom!\")\n    }];\n  }\n  \n  // Find JSON object in response\n  const jsonStart = cleanedResponse.indexOf('{');\n  const jsonEnd = cleanedResponse.lastIndexOf('}') + 1;\n  \n  if (jsonStart >= 0 && jsonEnd > jsonStart) {\n    cleanedResponse = cleanedResponse.substring(jsonStart, jsonEnd);\n  } else {\n    console.log('🎪 Triggering Chuck Academy: No JSON found');\n    return [{\n      json: generateChuckAcademy(inputData, \"AI response didn't contain valid JSON - Chuck to the rescue!\")\n    }];\n  }\n  \n  // Parse JSON\n  const aiContent = JSON.parse(cleanedResponse);\n  \n  // Validate AI content has required fields\n  if (!aiContent.episode_title || !aiContent.guest_bio) {\n    console.log('🎪 Triggering Chuck Academy: Invalid AI content structure');\n    return [{\n      json: generateChuckAcademy(inputData, \"AI response was missing key fields - Chuck Academy activated!\")\n    }];\n  }\n  \n  // 🎉 SUCCESS! AI worked properly\n  console.log('✅ AI Success: Professional content generated');\n  const result = {\n    // Original input data\n    processing_id: inputData.processing_id,\n    guest_name: inputData.guest_name,\n    guest_email: inputData.guest_email,\n    profile_text: inputData.profile_text,\n    job_description: inputData.job_description,\n    prompt_type: inputData.prompt_type,\n    timestamp: inputData.timestamp,\n    oracle_loaded: inputData.oracle_loaded,\n    \n    // AI generated content\n    ...aiContent,\n    \n    // Metadata\n    content_type: \"professional\",\n    ai_model: \"llama3.2:1b\",\n    generation_timestamp: new Date().toISOString(),\n    content_quality: \"professional\",\n    automation_level: \"100%\"\n  };\n  \n  return [{ json: result }];\n  \n} catch (error) {\n  // 🎪 ANY PARSING ERROR = CHUCK ACADEMY!\n  console.log('🎪 Triggering Chuck Academy: JSON parsing failed -', error.message);\n  return [{\n    json: generateChuckAcademy(inputData, `JSON parsing failed: ${error.message} - But Chuck never fails!`)\n  }];\n}"
+      },
+      "id": "def35638-039f-47dc-9274-7fae5fdecb0e",
+      "name": "🔧 Content Processor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🎪 SIMPLE CHUCK ACADEMY HTML GENERATOR (PROVEN TO WORK!)\nconst inputData = items[0].json;\nconst contentType = inputData.content_type || 'professional';\n\nconsole.log('🎨 HTML Generator - Content Type:', contentType);\n\nif (contentType === 'chuck_academy') {\n  // 🎪 CHUCK ACADEMY MODE - Using the proven simple template!\n  console.log('🎪 Generating Chuck Academy HTML');\n  \n  // Simple template that we know works!\n  const htmlContent = `<!DOCTYPE html>\n<html>\n<head>\n    <title>🎪 Chuck Norris Academy</title>\n    <style>\n        body { font-family: Arial; background: #1e3c72; color: white; padding: 20px; }\n        .container { max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 30px; border-radius: 15px; }\n        .title { font-size: 2em; text-align: center; margin-bottom: 20px; }\n        .section { margin: 20px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; }\n        .chuck-quote { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; text-align: center; font-style: italic; font-size: 1.2em; }\n        .career-item { background: rgba(254, 202, 87, 0.2); padding: 10px; margin: 5px; border-radius: 5px; display: inline-block; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"title\">🎪 CHUCK NORRIS ACADEMY</div>\n        <div class=\"subtitle\" style=\"text-align: center; margin-bottom: 30px;\">Where AI Failures Become Career Legends!</div>\n        \n        <div class=\"section\">\n            <h2>🎯 Career Warrior: ${inputData.guest_name}</h2>\n            <p><strong>Email:</strong> ${inputData.guest_email}</p>\n            <p><strong>Academy Session:</strong> #${inputData.academy_session}</p>\n            <p><strong>Profile:</strong> ${inputData.profile_text}</p>\n        </div>\n        \n        <div class=\"chuck-quote\">\n            \"${inputData.chuck_joke}\"\n        </div>\n        \n        <div class=\"section\">\n            <h3>💡 Chuck's Career Advice</h3>\n            <p>${inputData.chuck_advice}</p>\n        </div>\n        \n        <div class=\"section\">\n            <h3>🚀 Recommended Career Paths</h3>\n            ${inputData.career_suggestions.map(career => `<div class=\"career-item\">${career}</div>`).join('')}\n        </div>\n        \n        <div class=\"section\">\n            <h3>📚 Career Resources</h3>\n            ${inputData.career_links.map(link => `<p><a href=\"${link}\" style=\"color: #48dbfb;\">${link}</a></p>`).join('')}\n        </div>\n        \n        <div class=\"section\">\n            <h3>🤖 What Happened</h3>\n            <p><strong>Tech Issue:</strong> ${inputData.error_context}</p>\n            <p><strong>Encouragement:</strong> ${inputData.encouragement}</p>\n        </div>\n        \n        <div style=\"text-align: center; margin-top: 30px; font-size: 0.9em; opacity: 0.8;\">\n            <p>Session: ${inputData.academy_session} | Rating: ${inputData.chuck_rating} | Quality: ${inputData.content_quality}</p>\n            <p>Generated: ${inputData.generation_timestamp}</p>\n        </div>\n    </div>\n</body>\n</html>`;\n  \n  return [{\n    json: {\n      ...inputData,\n      html_content: htmlContent,\n      html_type: \"chuck_academy\",\n      file_name: `chuck-academy-${inputData.processing_id}.html`,\n      title: inputData.episode_title,\n      generation_status: \"chuck_academy_success\"\n    }\n  }];\n  \n} else {\n  // ✅ PROFESSIONAL MODE - AI worked perfectly!\n  console.log('✅ Generating Professional Interview HTML');\n  \n  const professionalHtml = `<!DOCTYPE html>\n<html>\n<head>\n    <title>${inputData.episode_title || 'Professional Interview'}</title>\n    <style>\n        body { font-family: Georgia, serif; background: #f8f9fa; color: #333; padding: 20px; }\n        .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }\n        .header { text-align: center; border-bottom: 3px solid #007bff; padding-bottom: 20px; margin-bottom: 30px; }\n        .title { font-size: 2.5em; color: #007bff; margin-bottom: 10px; }\n        .section { margin: 30px 0; padding: 20px; border-left: 4px solid #007bff; background: #f8f9fa; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <div class=\"title\">${inputData.episode_title || 'Professional Interview Package'}</div>\n        </div>\n        \n        <div class=\"section\">\n            <h3>Guest Information</h3>\n            <p><strong>Name:</strong> ${inputData.guest_name}</p>\n            <p><strong>Email:</strong> ${inputData.guest_email}</p>\n            <p><strong>Profile:</strong> ${inputData.profile_text}</p>\n            <p><strong>Role:</strong> ${inputData.job_description}</p>\n        </div>\n        \n        <div class=\"section\">\n            <h3>Biography</h3>\n            <p>${inputData.guest_bio || 'Professional biography will be generated here.'}</p>\n        </div>\n        \n        <div style=\"margin-top: 40px; font-size: 0.9em; color: #6c757d;\">\n            <p>AI Model: ${inputData.ai_model} | Generated: ${inputData.generation_timestamp}</p>\n            <p>Processing ID: ${inputData.processing_id}</p>\n        </div>\n    </div>\n</body>\n</html>`;\n  \n  return [{\n    json: {\n      ...inputData,\n      html_content: professionalHtml,\n      html_type: \"professional\",\n      file_name: `interview-${inputData.processing_id}.html`,\n      title: inputData.episode_title,\n      generation_status: \"professional_success\"\n    }\n  }];\n}"
+      },
+      "id": "c410b59b-0b6d-4c24-83b9-3fee14c5c8e7",
+      "name": "� HTML Generator (Pro + Chuck)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1872,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{$json.html_content}}",
+        "options": {}
+      },
+      "id": "3a202cd0-6226-4b08-adaa-82f680a34473",
+      "name": "🎪 Oracle HTML Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v3.1:671b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1368,
+        80
+      ],
+      "id": "65244502-607d-4daa-a2c2-84fad39f5166",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "RB9frpZqmT4XuBhR",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "return [\n  {\n    json: {\n      promptFile: `/podcast-studio/oracle-prompts/${$json.prompt_type}.json`\n    }\n  }\n];\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1296,
+        -144
+      ],
+      "id": "1c6b7119-e768-49d8-a22a-73c4596bb564",
+      "name": "🤖 AI Content Generator"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "Helix-App",
+        "emailType": "html",
+        "message": "={{ $json.html_content }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2320,
+        -240
+      ],
+      "id": "25b0d1d9-f38e-4bb3-ac85-3ed64804a8e4",
+      "name": "Create a draft",
+      "webhookId": "11c8edd7-9dcc-468c-86bf-0e901b793e58",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "b83Lh5K2en1y9UJK",
+          "name": "Helix-App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "a@k.com",
+        "toEmail": "a@k.com",
+        "subject": "Helix PodCat Script",
+        "html": "={{ $json.html_content }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2320,
+        -48
+      ],
+      "id": "a366e93e-d87c-4bd4-bf76-3baf64f6858c",
+      "name": "Send email",
+      "webhookId": "95d81625-eae8-42fe-a137-1a49d619ab5e",
+      "credentials": {
+        "smtp": {
+          "id": "GRLvyfYxoPNBgpcm",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "🎯 Webhook Input": {
+      "main": [
+        [
+          {
+            "node": "🔍 Data Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Data Processor": {
+      "main": [
+        [
+          {
+            "node": "🔮 Oracle Prompt Loader",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔮 Oracle Prompt Loader": {
+      "main": [
+        [
+          {
+            "node": "🔧 Prompt Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 Prompt Builder": {
+      "main": [
+        [
+          {
+            "node": "🤖 AI Content Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 Content Processor": {
+      "main": [
+        [
+          {
+            "node": "� HTML Generator (Pro + Chuck)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "� HTML Generator (Pro + Chuck)": {
+      "main": [
+        [
+          {
+            "node": "🎪 Oracle HTML Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🤖 AI Content Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 AI Content Generator": {
+      "main": [
+        [
+          {
+            "node": "🔧 Content Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎪 Oracle HTML Response": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1baa6d37-2a7c-4c75-bfc2-094d38aed52e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "63f725b2eedb343af11a518bea15a3ad45564cfb1d4bb8e65c0084f4f07b09e3"
+  },
+  "id": "NhIqFyrxMTSPlTeP",
+  "tags": [
+    {
+      "createdAt": "2025-09-09T17:16:33.683Z",
+      "updatedAt": "2025-09-09T17:16:33.683Z",
+      "id": "bXz3jgwOSlsYaLSO",
+      "name": "PoC"
+    }
+  ]
+}
