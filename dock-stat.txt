@@ -1,0 +1,10 @@
+CONTAINER ID   NAME        CPU %     MEM USAGE / LIMIT   MEM %     NET I/O           BLOCK I/O         PIDS
+e4fedd84125b   n8n         0.00%     171.1MiB / 700MiB   24.44%    12kB / 126B       1.58MB / 56.2MB   13
+3da8f2f614be   kong        280.42%   474.9MiB / 500MiB   94.99%    11.9kB / 126B     6.84GB / 76.3MB   9
+1d0abcc96920   redpanda    0.00%     0B / 0B             0.00%     0B / 0B           0B / 0B           0
+ccd5eab014dc   demo-ui     0.00%     8.34MiB / 150MiB    5.56%     12.5kB / 126B     2.01MB / 12.3kB   9
+e21f1f328291   portainer   0.00%     17.91MiB / 200MiB   8.96%     12.6kB / 126B     1.29MB / 0B       10
+11904278e521   postgres    0.00%     21.73MiB / 700MiB   3.10%     12.5kB / 126B     4.44MB / 414kB    6
+d4bc9b8cf1ee   vault       0.08%     45.7MiB / 300MiB    15.23%    80.2kB / 18.1kB   29.3MB / 197MB    14
+88836158bdfe   traefik     0.66%     23.11MiB / 300MiB   7.70%     156kB / 47.9kB    1.47MB / 0B       12
+fd59a109a433   redis       0.27%     10.08MiB / 200MiB   5.04%     12.5kB / 126B     1.31MB / 0B       6

@@ -1,0 +1,16 @@
+http://localhost:5678/webhook-test/v1
+
+curl -X POST http://localhost:5678/webhook-test/v1 -H "Content-Type: application/json" -d "{\"name\":\"Jose Martinez\",\"email\":\"jose@test.com\",\"linkedin_text\":\"Banking professional with 5 years experience in financial services, specializing in risk management and compliance\"}"
+
+curl -X GET http://localhost:5678/webhook-test/v1 -H "Content-Type: application/json" -d "{\"name\":\"Jose Martinez\",\"email\":\"jose@test.com\",\"linkedin_text\":\"Banking professional with 5 years experience in financial services, specializing in risk management and compliance\"}"
+
+
+curl -X GET http://localhost:5678/webhook-test/podcastStudioWF_v0-0-2 -H "Content-Type: application/json" -d "{\"name\":\"Jose Martinez\",\"email\":\"jose@test.com\",\"linkedin_text\":\"Banking professional with 5 years experience in financial services, specializing in risk management and compliance\"}"
+
+http://localhost:5678/webhook-test/podcastStudioWF_v0-0-2
+
+
+curl -X POST http://localhost:5678/webhook-test/v1 -H "Content-Type: application/json" -d "{\"name\":\"Jose Martinez\",\"email\":\"jose@test.com\",\"linkedin_text\":\"Banking professional with 5 years experience in financial services, specializing in risk management and compliance\"}"
+
+
+http://localhost:5678/webhook-test/podcastStudioWF_v0-0-2

@@ -1,0 +1,25 @@
+{
+  "prompt_id": "general",
+  "name": "🎯 General Professional",
+  "description": "General professional interview package for any industry",
+  "tier": "espresso",
+  "prompt_template": "Create a professional podcast interview prep package for:\n\nName: {{ $json.body.name }}\nEmail: {{ $json.body.email }}\nProfile: {{ $json.body.profile_text }}\nRole: {{ $json.body.job_description }}\n\nGenerate a GENERAL PROFESSIONAL interview package focusing on:\n- Professional background and expertise\n- Career achievements and milestones\n- Industry insights and experience\n- Personal brand and unique value proposition\n\nReturn ONLY valid JSON in this exact format:\n{{\n  \"episode_title\": \"Professional focused title\",\n  \"guest_bio\": \"Professional biography highlighting expertise\",\n  \"win_story_1\": \"Key professional achievement\",\n  \"win_story_2\": \"Career milestone or success story\", \n  \"industry_insight\": \"Valuable industry perspective or trend\",\n  \"question_1\": \"Professional background and expertise question\",\n  \"question_2\": \"Career journey and achievements question\",\n  \"question_3\": \"Industry insights and future outlook question\",\n  \"professional_bio\": \"Extended professional summary with key accomplishments\",\n  \"talking_points\": \"Key discussion points for professional interview\"\n}}\n\nFocus on professional expertise, career achievements, industry knowledge, and personal brand.",
+  "variables": [
+    "name",
+    "email", 
+    "profile_text",
+    "job_description"
+  ],
+  "output_fields": [
+    "episode_title",
+    "guest_bio",
+    "win_story_1",
+    "win_story_2",
+    "industry_insight",
+    "question_1",
+    "question_2", 
+    "question_3",
+    "professional_bio",
+    "talking_points"
+  ]
+}

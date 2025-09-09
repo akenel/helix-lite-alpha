@@ -1,7 +1,1 @@
-# Profile: minecraft
-# Add Compose service entries here for the 'minecraft' profile.
-# Example:
-# services:
-#   myservice:
-#     image: busybox
-#     profiles: ["minecraft"]
+# minecraft Profile Configuration

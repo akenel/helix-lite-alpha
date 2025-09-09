@@ -1,0 +1,11 @@
+{
+  "database": {
+    "type": "postgres",
+    "host": "postgres",
+    "database": "helix_db",
+    "username": "helix_user",
+    "password": "helixpass"
+  },
+  "host": "localhost",
+  "webhook": "http://localhost:5678/"
+}

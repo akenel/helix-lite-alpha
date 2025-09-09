@@ -1,0 +1,9 @@
+{
+  "prompt_id": "corporate_climber",
+  "name": "💼 Corporate Climber",
+  "description": "Executive leadership journey and boardroom excellence",
+  "tier": "cappuccino",
+  "prompt_template": "Create a professional podcast interview prep package based on this LinkedIn profile:\n\nName: {{ $json.body.name }}\nEmail: {{ $json.body.email }}\nLinkedIn Profile Content: {{ $json.body.linkedin_text }}\n\nGenerate a CORPORATE CLIMBER style interview package focusing on:\n- Executive leadership development\n- Strategic decision-making and business impact\n- Team management and organizational growth\n- Boardroom presence and corporate excellence\n\nReturn ONLY valid JSON in this exact format:\n{{\n  \"episode_title\": \"Executive leadership focused title\",\n  \"guest_bio\": \"Professional biography emphasizing leadership credentials\",\n  \"leadership_story_1\": \"Key leadership achievement with business impact\",\n  \"leadership_story_2\": \"Strategic decision that drove results\",\n  \"team_impact_story\": \"Team development or organizational transformation\",\n  \"question_1\": \"Strategic leadership and vision question\",\n  \"question_2\": \"Team management and people development question\",\n  \"question_3\": \"Business strategy and market positioning question\",\n  \"professional_bio\": \"Extended executive summary with quantified achievements\",\n  \"talking_points\": \"Key discussion points for executive-level interview\"\n}}\n\nFocus on leadership impact, strategic thinking, business results, and executive presence. Make it boardroom-ready and results-oriented.",
+  "variables": ["name", "email", "linkedin_text"],
+  "output_fields": ["episode_title", "guest_bio", "leadership_story_1", "leadership_story_2", "team_impact_story", "question_1", "question_2", "question_3", "professional_bio", "talking_points"]
+}

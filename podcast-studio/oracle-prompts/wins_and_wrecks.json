@@ -1,0 +1,9 @@
+{
+  "prompt_id": "wins_and_wrecks",
+  "name": "🏆 Wins & Wrecks",
+  "description": "Career highlights and lessons learned storytelling style",
+  "tier": "espresso",
+  "prompt_template": "Create a professional podcast interview prep package based on this LinkedIn profile:\n\nName: {{ $json.body.name }}\nEmail: {{ $json.body.email }}\nLinkedIn Profile Content: {{ $json.body.linkedin_text }}\n\nGenerate a WINS & WRECKS style interview package focusing on:\n- Career triumphs and breakthrough moments\n- Lessons learned from challenges and setbacks\n- Personal growth through adversity\n- Authentic storytelling approach\n\nReturn ONLY valid JSON in this exact format:\n{\n  \"episode_title\": \"Compelling wins & wrecks themed title\",\n  \"guest_bio\": \"Professional 2-3 sentence biography highlighting resilience\",\n  \"win_story_1\": \"Major career triumph with specific details\",\n  \"win_story_2\": \"Second significant achievement story\",\n  \"wreck_story_1\": \"Challenge overcome with lessons learned\",\n  \"question_1\": \"Deep question about career breakthrough moment\",\n  \"question_2\": \"Question about learning from failure\",\n  \"question_3\": \"Question about personal growth and resilience\",\n  \"professional_bio\": \"Extended biography emphasizing journey and growth\",\n  \"talking_points\": \"Key discussion points for authentic storytelling interview\"\n}\n\nFocus on authentic human experience, career progression through challenges, and professional resilience. Make it engaging and emotionally resonant.",
+  "variables": ["name", "email", "linkedin_text"],
+  "output_fields": ["episode_title", "guest_bio", "win_story_1", "win_story_2", "wreck_story_1", "question_1", "question_2", "question_3", "professional_bio", "talking_points"]
+}

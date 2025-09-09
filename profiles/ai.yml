@@ -1,0 +1,19 @@
+# AI Profile - AI Assistant Services
+# Services: ollama, open-webui
+version: '3.8'
+
+services:
+  ollama:
+    profiles: ["ai"]
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - helix-net
+    environment:
+      OLLAMA_HOST: 0.0.0.0
+
+volumes:
+  ollama_data:

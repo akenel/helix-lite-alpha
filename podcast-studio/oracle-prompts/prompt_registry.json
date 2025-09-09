@@ -1,0 +1,40 @@
+{
+  "prompt_manager_version": "1.0.0",
+  "default_prompt": "wins_and_wrecks",
+  "available_prompts": [
+    {
+      "id": "wins_and_wrecks",
+      "name": "🏆 Wins & Wrecks",
+      "tier": "espresso",
+      "description": "Career triumphs and lessons learned",
+      "file": "wins_and_wrecks.json"
+    },
+    {
+      "id": "corporate_climber", 
+      "name": "💼 Corporate Climber",
+      "tier": "cappuccino",
+      "description": "Executive leadership journey",
+      "file": "corporate_climber.json"
+    },
+    {
+      "id": "tech_titan",
+      "name": "🛠️ Tech Titan", 
+      "tier": "cappuccino",
+      "description": "Technical expertise deep dive",
+      "file": "tech_titan.json"
+    },
+    {
+      "id": "oracle_truth",
+      "name": "🔮 Oracle Truth",
+      "tier": "latte",
+      "description": "Brutal career honesty and potential revelation",
+      "file": "oracle_truth.json"
+    }
+  ],
+  "tier_access": {
+    "espresso": ["wins_and_wrecks"],
+    "cappuccino": ["wins_and_wrecks", "corporate_climber", "tech_titan"],
+    "latte": ["wins_and_wrecks", "corporate_climber", "tech_titan", "oracle_truth"],
+    "barista": ["all_prompts_plus_custom"]
+  }
+}

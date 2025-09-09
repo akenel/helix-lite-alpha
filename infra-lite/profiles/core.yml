@@ -1,7 +1,3 @@
-# Profile: core
-# Add Compose service entries here for the 'core' profile.
-# Example:
-# services:
-#   myservice:
-#     image: busybox
-#     profiles: ["core"]
+# Core Profile - Essential Services
+# Services: postgres, n8n, filebrowser, sftp-demo
+version: '3.8'

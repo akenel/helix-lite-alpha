@@ -1,4 +1,139 @@
 # helix-lite-alpha
+road map
+🕵️‍♂️ Sherlock reporting — I *love* this energy. What you’re sketching out is ambitious (a **lean BTP rival on Docker Compose**), but it’s not crazy. In fact, running a **micro-BTP on a laptop** is one of the smartest ways to:
+
+* ✅ Validate the architecture.
+* ✅ Test the integration flows (OData, REST, IDoc, ABAP proxy).
+* ✅ Harden the security model before any real deployment.
+
+This is **totally doable today** on your laptop — as long as we **stay lean, modular, and scripted** so you don’t get lost in the service jungle.
+
+---
+# 🚁 Helix Infra-Lite
+
+This repository contains the core infrastructure for the Helix project,
+a powerful local development environment for testing and developing
+webhooks, email automations, and more.
+
+## ✨ Features
+
+- **Docker-Compose:** Easy setup with a single command.
+- **Traefik:** Reverse proxy with automatic SSL for local domains (`.local`).
+- **N8N:** Workflow automation and webhook processing.
+- **MailHog:** Local SMTP server for email testing and debugging.
+
+## 🚀 Getting Started
+
+1.  Clone this repository.
+2.  Run `docker compose up -d`.
+3.  Access N8N at `https://n8n.helix.local` and MailHog at `http://localhost:8025`.
+
+## 🔒 Configuration
+
+This project uses environment variables for sensitive information. A `.env` file should be created based on the `.env.example` file.
+
+
+
+## 📝 Checklist: SAP BTP-like Platform on Docker Compose
+
+### 1. **Core Infrastructure (must-have backbone)**
+
+* [x] **Traefik** → API Gateway + Routing + TLS (your entrypoint).
+* [x] **Kong** → API management (quotas, rate limiting, OData/REST exposure).
+* [x] **Postgres** → DB backend for services (and Kong).
+* [x] **Redis** → Cache + message state store.
+* [x] **Vault** → Secrets, credentials, SAP backend keys.
+* [x] **Authelia / Keycloak** → Identity & Access (SSO, JWT for services).
+
+---
+
+### 2. **Integration & Event Backbone**
+
+* [x] **n8n** → Orchestrator + low-code mapper (IDoc ↔ OData ↔ REST ↔ ABAP).
+* [ ] **Kafka or Redpanda (optional)** → Event streaming backbone (IDoc streams, async SAP events).
+* [ ] **Schema Registry** → Keep OData/IDoc schemas aligned.
+* [ ] **Connectors** → Pre-built n8n nodes for SAP OData / IDoc / RFC.
+
+---
+
+### 3. **Developer & Ops Tools**
+
+* [x] **Portainer** → Container management UI (debug fast).
+* [x] **Filebrowser / SFTP** → File integration (classic SAP batch jobs).
+* [ ] **Grafana + Prometheus** → Monitoring stack.
+* [ ] **ELK or Loki** → Logs + trace for SAP ↔ Middleware ↔ Cloud.
+
+---
+
+### 4. **Security / Enterprise Features**
+
+* [ ] Vault integration with Traefik & Kong → no secrets in env files.
+* [ ] Authelia → handle OAuth2/OIDC, SSO across services.
+* [ ] Mutual TLS between services (docker-compose networks).
+* [ ] Role-based access → separate "admin vs dev vs runtime".
+
+---
+
+### 5. **SAP Connectivity Layer**
+
+* [ ] **OData connector** (via n8n node or Kong plugin).
+* [ ] **REST connector** (standard).
+* [ ] **IDoc listener** (via SFTP / Kafka stream / RFC connector).
+* [ ] **ABAP proxy simulation** (could be proxied via Kong or exposed through an adapter microservice).
+
+---
+
+### 6. **Local Dev Workflow**
+
+* ✅ `docker compose --profile core up -d` → Start backbone.
+* ✅ `./setup.sh` → TUI for deployment/teardown.
+* ✅ `./health-check.sh` → Dashboard status check.
+* ✅ `./config.sh` → Configure secrets (Vault) + routes (Kong) + SSO (Authelia).
+* 🔜 Add **profiles** (`profiles/integration.yml`, `profiles/analytics.yml`) for modular expansion.
+
+---
+
+### 7. **Stretch Goals (Phase 2)**
+
+* [ ] **Multi-tenant simulation** → SAP BTP spaces/projects.
+* [ ] **Custom dashboard (TUI or Web)** → Show all service URLs in one place.
+* [ ] **CI/CD on Laptop** → Scripts simulate deployment pipelines.
+* [ ] **Hybrid connectivity** → VPN tunnel into SAP backend sandbox.
+
+---
+
+## 🚦 Game Plan (Today → MVP)
+
+1. **Stabilize Core Profile** → get Postgres, Kong, Traefik, Vault, Authelia, n8n working together.
+2. **Wire Kong + n8n** → expose a mock SAP OData service via Kong, route to n8n.
+3. **Secure It** → Vault manages secrets, Authelia provides login.
+4. **Check with Health Script** → get ✅ on all services.
+5. **Add Kafka if Needed** → only if you need async events.
+
+---
+
+## ⚡ Reality Check
+
+* 💻 Your laptop *can* handle this if you stay modular (not everything at once).
+* 🧠 The hardest part isn’t containers — it’s **designing the integration flows** (OData ↔ IDoc ↔ REST).
+* 🚀 If we script carefully, you’ll have a **mini-SAP BTP rival in Docker Compose** — and you’ll understand it *better than SAP consultants*.
+
+---
+
+👉 Sherlock says: This isn’t crazy — this is *exactly* how to build enterprise middleware lean.
+
+Do you want me to **draft the first `core.yml` Docker Compose profile** with:
+
+* Traefik
+* Kong
+* Postgres
+* Redis
+* Vault
+* Authelia
+* n8n
+
+so you can run `docker compose --profile core up -d` and bootstrap your mini-BTP backbone today?
+
 
 A streamlined, local-first development stack for microservice-based applications. This setup provides essential infrastructure components including a reverse proxy, a message queue, and a PostgreSQL database, all orchestrated with Docker Compose.
 

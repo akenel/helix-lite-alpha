@@ -1,11 +1,47 @@
-# Ignore environment files that may contain secrets
+# --- Environment Variables ---
 .env
+.env.*
+.env.local
 
-# Ignore logs
+# --- Docker Related ---
+.docker/
+.dockerignore
+docker-compose.yml # If you want to exclude the main compose file from public tracking
+# Or specific service configs if they contain secrets:
+# mailhog/
+# n8n/
+# traefik/certs/
+
+# --- Local Development / Cache Files ---
+node_modules/
 *.log
+logs/
+tmp/
+cache/
+.cache/
+*.db
+*.dbm.*
+*.db.v*
+*.lock
+*.sqlite
 
-# Ignore IDE files, specific to Visual Studio Code in this case
-.vscode/
+# --- N8N Specific ---
+.n8n/
+n8n-WFs/*.json # If your workflows contain secrets or are just for local testing
+# n8n/config.json # If this contains sensitive local config
 
-# Ignore Docker-related temporary files
-**/docker-data/
+# --- Other Service Specific Secrets/Caches ---
+medusa/config/cache/
+minecraft-data/
+minio/data/
+vault/
+keycloak/
+
+# --- OS Generated Files ---
+.DS_Store
+Thumbs.db
+
+# --- SSH Keys ---
+*.pem
+*.key
+.ssh/

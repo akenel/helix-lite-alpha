@@ -1,7 +1,22 @@
-# Profile: lms
-# Add Compose service entries here for the 'lms' profile.
-# Example:
-# services:
-#   myservice:
-#     image: busybox
-#     profiles: ["lms"]
+# LMS Profile - Learning Management System
+# Services: moodle, postgres, redis
+version: '3.8'
+
+services:
+  moodle:
+    profiles: ["lms"]
+    image: moodle:latest
+    ports:
+      - "8081:80"
+    environment:
+      MOODLE_DATABASE_TYPE: pgsql
+      MOODLE_DATABASE_HOST: postgres
+      MOODLE_DATABASE_NAME: moodle_db
+      MOODLE_DATABASE_USER: helix_user
+      MOODLE_DATABASE_PASSWORD: helix_pass
+    volumes:
+      - ./moodle/moodledata:/var/moodledata
+    networks:
+      - helix-net
+    depends_on:
+      - postgres

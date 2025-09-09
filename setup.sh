@@ -59,6 +59,12 @@ declare -A SERVICE_PORTS=(
     ["matomo"]="8083"
     ["medusa"]="9000"
     ["minecraft"]="25565"
+    ["vault"]="8200"
+    ["redis"]="6379"
+    ["mailhog"]="8025"
+    ["portainer"]="9443"
+    ["kong"]="8000"
+    ["demo-ui"]="3000"
 )
 
 # ====================================================================
@@ -125,129 +131,80 @@ EOF
 # 🏗️ INFRASTRUCTURE SETUP FUNCTIONS
 # ====================================================================
 
+# This function creates the necessary directories and files.
 create_directory_structure() {
-    local base_dir="${1:-infra-lite}"
+    local base_dir="$1"
     
-    log "INFO" "Creating directory structure in: $base_dir"
-    
-    # Create base directory
+    # Existing logic
     mkdir -p "$base_dir"
-    cd "$base_dir"
+    cd "$base_dir" || exit 1
     
-    # Create service directories
-    local directories=(
-        "profiles" "traefik" "traefik/certs" "authelia" "vault" "vault/policies"
-        "postgres" "moodle" "moodle/moodledata" "minio" "mailhog"
-        "grafana" "grafana/dashboards" "prometheus" "ai-assistant"
-        "n8n" "medusa" "analytics" "minecraft"
-    )
+    # New logic to ensure necessary files are created
+    # This directly addresses the error you're seeing.
+    log "INFO" "Creating necessary directories and files..."
     
-    for dir in "${directories[@]}"; do
-        mkdir -p "$dir"
-    done
-    
-    # Create profile files if they don't exist
-    create_profile_files
-    
-    # Create basic compose file if it doesn't exist
-    if [[ ! -f "$COMPOSE_FILE" || ! -s "$COMPOSE_FILE" ]]; then
-        create_base_compose_file
+    mkdir -p "./n8n"
+    if [[ ! -f "./n8n/config.json" ]]; then
+        log "INFO" "Creating default n8n config file."
+        # Provide a basic valid JSON config.
+        echo "{}" > "./n8n/config.json"
     fi
     
-    cd - > /dev/null
-    log "INFO" "Directory structure created successfully"
+    mkdir -p "./postgres"
+    if [[ ! -f "./postgres/init.sql" ]]; then
+        log "INFO" "Creating default postgres init file."
+        echo "CREATE DATABASE IF NOT EXISTS moodle_db;" > "./postgres/init.sql"
+    fi
+
+    # Add other directories as needed, e.g., for prometheus, grafana, etc.
+    mkdir -p "./prometheus"
+    mkdir -p "./grafana"
+    mkdir -p "./sftp/demo" # Ensure this path also exists
+    
+    log "INFO" "Directory structure created successfully."
 }
 
-create_profile_files() {
-    for profile in "${!PROFILES[@]}"; do
-        if [[ ! -f "profiles/${profile}.yml" ]]; then
-            create_profile_config "$profile"
-        fi
-    done
-}
+# create_profile_files() {
+#     for profile in "${!PROFILES[@]}"; do
+#         if [[ ! -f "profiles/${profile}.yml" ]]; then
+#             create_profile_config "$profile"
+#         fi
+#     done
+# }
 
+# Corrected and Sensible docker-compose.yml
+
+# ====================================================================
+# 🗂️ FILE & DIRECTORY MANAGEMENT
+# ====================================================================
+
+# This function will now copy the file instead of generating it.
 create_base_compose_file() {
-    cat > "$COMPOSE_FILE" << 'EOF'
-version: '3.8'
+    local source_compose_file="$(dirname "$0")/docker-compose-template.yml"
+    local target_compose_file="$COMPOSE_FILE"
 
-networks:
-  helix-net:
-    external: false
-  default:
-    external: false
+    log "INFO" "Ensuring Docker Compose file exists..."
 
-volumes:
-  helix_db_data:
-  n8n_data:
-  filebrowser_data:
+    if [[ ! -f "$source_compose_file" ]]; then
+        log "ERROR" "Template file not found: $source_compose_file"
+        whiptail --title "🚨 Error" --msgbox "The required 'docker-compose-template.yml' file could not be found. Aborting." 10 60
+        exit 1
+    fi
 
-services:
-  # Core Services
-  postgres:
-    profiles: ["core", "lms", "ecommerce"]
-    image: postgres:14-alpine
-    environment:
-      POSTGRES_DB: helix_db
-      POSTGRES_USER: helix_user
-      POSTGRES_PASSWORD: helix_pass
-    volumes:
-      - helix_db_data:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    networks:
-      - helix-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U helix_user -d helix_db"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  n8n:
-    profiles: ["core", "integration"]
-    image: n8nio/n8n:latest
-    ports:
-      - "5678:5678"
-    environment:
-      N8N_HOST: localhost
-      N8N_PORT: 5678
-      N8N_PROTOCOL: http
-      NODE_ENV: production
-      WEBHOOK_URL: http://localhost:5678/
-      GENERIC_TIMEZONE: UTC
-    volumes:
-      - n8n_data:/home/node/.n8n
-      - ./n8n/config.json:/home/node/.n8n/config.json:ro
-    networks:
-      - helix-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  filebrowser:
-    profiles: ["core"]
-    image: filebrowser/filebrowser:latest
-    ports:
-      - "8082:80"
-    volumes:
-      - filebrowser_data:/srv
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    environment:
-      FB_DATABASE: /srv/filebrowser.db
-    networks:
-      - helix-net
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  sftp-demo:
-    profiles: ["core"]
-    image: atmoz/sftp:latest
-    command: bank:bankpassword:1001
-    networks:
-      - helix-net
-EOF
+    if [[ ! -f "$target_compose_file" ]]; then
+        cp "$source_compose_file" "$target_compose_file"
+        if [[ $? -eq 0 ]]; then
+            log "INFO" "Copied '$source_compose_file' to '$target_compose_file'"
+        else
+            log "ERROR" "Failed to copy Docker Compose file."
+            whiptail --title "🚨 Error" --msgbox "Failed to copy the Docker Compose template file. Check permissions." 10 60
+            exit 1
+        fi
+    fi
 }
+
+# The create_profile_config() function is now obsolete and should be deleted.
+# The user-facing setup.sh script should present these profiles as menu options.
 
 create_profile_config() {
     local profile="$1"
@@ -383,8 +340,8 @@ deploy_profile() {
             
             echo "30"
             echo "# Deploying profile: $profile"
-            docker-compose --profile "$profile" up -d
-            
+            docker-compose -f "$COMPOSE_FILE" -f "profiles/$profile.yml" up -d --profile "$profile"
+
             echo "70"
             echo "# Waiting for services to start..."
             sleep 5
@@ -476,26 +433,41 @@ show_status_dashboard() {
     local status_info=""
     local running_services=()
     
+    echo "🌟 Checking for running services..."
+    
     # Get running containers
-    mapfile -t running_services < <(docker-compose ps --services --filter "status=running" 2>/dev/null || echo "")
+    mapfile -t running_services < <(docker-compose ps --services --filter "status=running" 2>/dev/null)
+
+    # Filter out any empty entries that may have been created by mapfile
+    local filtered_services=()
+    for s in "${running_services[@]}"; do
+        if [[ -n "$s" ]]; then
+            filtered_services+=("$s")
+        fi
+    done
+    running_services=("${filtered_services[@]}")
+
+    echo "🌟 Found running services: ${running_services[*]}"
     
     status_info="🌟 HELIX HUB STATUS DASHBOARD\n"
     status_info+="================================\n\n"
     
+    # Now, the logic works as you intended, because the array is truly empty
     if [[ ${#running_services[@]} -eq 0 ]]; then
         status_info+="❌ No services currently running\n"
     else
         status_info+="✅ Running Services (${#running_services[@]}):\n\n"
         
         for service in "${running_services[@]}"; do
+            echo "Checking service: $service" # Debug
             local port="${SERVICE_PORTS[$service]:-N/A}"
             local health_status
             
             # Check if service is responding
             if [[ "$port" != "N/A" ]] && check_service_health "localhost" "$port"; then
-                health_status="🟢 Healthy"
+                health_status="✅ Healthy"
             else
-                health_status="🟡 Starting"
+                health_status="⚠️️ Starting"
             fi
             
             status_info+="  • $service (port: $port) - $health_status\n"
@@ -503,15 +475,15 @@ show_status_dashboard() {
         
         status_info+="\n📊 Resource Usage:\n"
         status_info+="$(docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}' 2>/dev/null | head -6 || echo 'Stats unavailable')\n"
+        
+        status_info+="\n🌐 Service URLs:\n"
+        for service in "${running_services[@]}"; do
+            local port="${SERVICE_PORTS[$service]:-}"
+            if [[ -n "$port" && "$port" != "5432" ]]; then
+                status_info+="  • $service: http://localhost:$port\n"
+            fi
+        done
     fi
-    
-    status_info+="\n🌐 Service URLs:\n"
-    for service in "${running_services[@]}"; do
-        local port="${SERVICE_PORTS[$service]:-}"
-        if [[ -n "$port" && "$port" != "5432" ]]; then
-            status_info+="  • $service: http://localhost:$port\n"
-        fi
-    done
     
     whiptail --title "📊 System Status" \
         --msgbox "$status_info" \
@@ -616,7 +588,6 @@ configure_global_settings() {
             12 50
     fi
 }
-
 configure_core_services() {
     local n8n_config db_config
     
@@ -646,7 +617,17 @@ configure_core_services() {
             --inputbox "Webhook URL:" 10 50 "http://localhost:5678/" 3>&1 1>&2 2>&3)
         
         # Save configuration
-        cat > "n8n/config.json" << EOF
+# Navigate to the directory where setup.sh is located if you're not already there
+cd ~/helix-hub/infra-lite/ 
+
+# Remove the directory if it exists
+if [ -d "n8n/config.json" ]; then
+    echo "Removing existing directory: n8n/config.json"
+    rm -r n8n/config.json 
+fi
+
+# Now, re-run the command that creates the file
+cat > "n8n/config.json" << EOF
 {
   "database": {
     "type": "postgres",
@@ -659,11 +640,39 @@ configure_core_services() {
   "webhook": "$n8n_webhook"
 }
 EOF
-        
+
+echo "n8n/config.json created successfully."
+
+        # --- HEALTH CHECK DASHBOARD ---
+        sleep 2
+        local status="📊 Core Services Status\n\n"
+
+        # PostgreSQL
+        if docker exec postgres pg_isready -U "$db_user" -d "$db_name" >/dev/null 2>&1; then
+            status+="🟢 Postgres (5432) - Healthy\n"
+        else
+            status+="🔴 Postgres (5432) - Unreachable\n"
+        fi
+
+        # n8n
+        if curl -sSf "http://$n8n_host:5678" >/dev/null 2>&1; then
+            status+="🟢 n8n (5678) - Healthy\n"
+        else
+            status+="🔴 n8n (5678) - Unreachable\n"
+        fi
+
+        # Filebrowser
+        if curl -sSf "http://localhost:8081" >/dev/null 2>&1; then
+            status+="🟢 Filebrowser (8081) - Healthy\n"
+        else
+            status+="🔴 Filebrowser (8081) - Unreachable\n"
+        fi
+
         whiptail --title "✅ Configuration Complete" \
-            --msgbox "Core services configured successfully!" 8 50
+            --msgbox "$status" 20 60
     fi
 }
+
 
 configure_profile() {
     local profile="$1"

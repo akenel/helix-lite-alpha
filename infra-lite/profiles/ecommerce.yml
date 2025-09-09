@@ -1,7 +1,1 @@
-# Profile: ecommerce
-# Add Compose service entries here for the 'ecommerce' profile.
-# Example:
-# services:
-#   myservice:
-#     image: busybox
-#     profiles: ["ecommerce"]
+# ecommerce Profile Configuration

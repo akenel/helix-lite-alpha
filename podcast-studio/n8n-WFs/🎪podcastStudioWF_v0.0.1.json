@@ -1,0 +1,176 @@
+{
+  "name": "🎪podcastStudioWF_v0.0.1",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "v1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0d5a98ee-7850-4676-bad5-3a522c040c48",
+      "name": "Webhook",
+      "webhookId": "a972decb-ab2c-4c3a-8736-983781035dca"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f43ca7d4-e35a-49b4-ac72-8c23e0ee59ea",
+              "name": "name",
+              "value": "={{ $node[\"Webhook\"].json[\"name\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "8d8a8bea-2eb5-4b1c-b2c5-ba4e5a5c1c02",
+              "name": "linkedin_text",
+              "value": "= {{ $node[\"Webhook\"].json[\"linkedin_text\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "3a7e2af6-004a-4619-83f0-0c47f52b6a3b",
+              "name": "email",
+              "value": "={{ $node[\"Webhook\"].json[\"email\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": "=",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "4b192757-fb62-4c55-b9e7-b35fac5c7380",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a professional podcast interview prep package based on this LinkedIn profile:\n\nName: {name}\nEmail: {email}\nLinkedIn Text: {linkedin_text}\n\nGenerate interview questions, talking points, and professional bio content.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        448,
+        0
+      ],
+      "id": "89f872a1-43cd-499a-b4a3-489ee5a06855",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {
+          "format": "json"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        528,
+        224
+      ],
+      "id": "34a4da9f-68f3-4319-8e00-f6cb9bac3ce9",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "YYHrhRJ1Mw0Fj5Z0",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Wins & Wrecks - Episode Prep Package: Evangelia Kallivretaki</title>\n    <style>\n        * { box-sizing: border-box; }\n        \n        body { \n            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; \n            line-height: 1.6; \n            margin: 0; \n            padding: 0; \n            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n            color: #333; \n        }\n        \n        .page { \n            width: 21cm; \n            min-height: 29.7cm; \n            margin: 1cm auto; \n            background: white; \n            padding: 2.5cm; \n            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15); \n            box-sizing: border-box; \n            page-break-after: always;\n            position: relative;\n        }\n        \n        .page:last-child { page-break-after: avoid; }\n        \n        /* Print styles for PDF generation */\n        @media print {\n            body { background: white; }\n            .page { \n                margin: 0; \n                box-shadow: none; \n                page-break-after: always;\n            }\n        }\n        \n        /* Header styling */\n        .podcast-header {\n            text-align: center;\n            margin-bottom: 3em;\n            position: relative;\n        }\n        \n        .podcast-logo {\n            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n            color: white;\n            padding: 1.5em;\n            border-radius: 20px;\n            margin-bottom: 1em;\n            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);\n        }\n        \n        .podcast-title {\n            font-size: 2.5em;\n            font-weight: 900;\n            letter-spacing: 2px;\n            margin: 0;\n            text-transform: uppercase;\n        }\n        \n        .podcast-subtitle {\n            font-size: 1.1em;\n            opacity: 0.9;\n            margin: 0.5em 0 0 0;\n            letter-spacing: 1px;\n        }\n        \n        /* Episode specific styling */\n        .episode-title {\n            font-size: 2.2em;\n            color: #2c3e50;\n            text-align: center;\n            margin: 2em 0 1em 0;\n            line-height: 1.2;\n            font-weight: 700;\n        }\n        \n        .guest-name {\n            font-size: 1.8em;\n            color: #e74c3c;\n            text-align: center;\n            font-weight: 600;\n            margin-bottom: 0.5em;\n        }\n        \n        .guest-title {\n            text-align: center;\n            font-size: 1.2em;\n            color: #7f8c8d;\n            margin-bottom: 2em;\n            font-style: italic;\n        }\n        \n        /* Guest photo styling */\n        .guest-photo {\n            text-align: center;\n            margin: 2em 0;\n        }\n        \n        .guest-photo img {\n            width: 200px;\n            height: 200px;\n            border-radius: 50%;\n            border: 5px solid #667eea;\n            object-fit: cover;\n            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);\n        }\n        \n        .guest-photo-placeholder {\n            width: 200px;\n            height: 200px;\n            border-radius: 50%;\n            border: 5px solid #667eea;\n            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n            display: inline-flex;\n            align-items: center;\n            justify-content: center;\n            color: white;\n            font-size: 3em;\n            font-weight: bold;\n        }\n        \n        /* Content styling */\n        h1, h2, h3 { \n            color: #2c3e50; \n            margin-top: 2em;\n            margin-bottom: 1em;\n        }\n        \n        h2 { \n            font-size: 1.6em; \n            border-left: 5px solid #667eea;\n            padding-left: 1em;\n            background: #f8f9fa;\n            padding: 0.8em 0 0.8em 1em;\n            border-radius: 0 8px 8px 0;\n        }\n        \n        h3 {\n            font-size: 1.3em;\n            color: #e74c3c;\n            margin-top: 1.5em;\n        }\n        \n        p { \n            margin-bottom: 1.2em; \n            text-align: justify;\n            font-size: 1.05em;\n        }\n        \n        ul, ol { \n            margin-left: 1.5em; \n            margin-bottom: 1.5em;\n        }\n        \n        li {\n            margin-bottom: 0.8em;\n            line-height: 1.5;\n        }\n        \n        /* Contact and social styling */\n        .contact-section {\n            background: #f8f9fa;\n            padding: 2em;\n            border-radius: 15px;\n            margin: 2em 0;\n            border-left: 5px solid #e74c3c;\n        }\n        \n        .contact-info a { \n            color: #667eea; \n            text-decoration: none; \n            font-weight: 600;\n        }\n        \n        .contact-info a:hover { \n            text-decoration: underline; \n            color: #e74c3c;\n        }\n        \n        /* Call to action styling */\n        .call-to-action {\n            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n            color: white;\n            padding: 2em;\n            border-radius: 15px;\n            text-align: center;\n            margin: 2em 0;\n            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);\n        }\n        \n        .call-to-action p {\n            margin: 0;\n            font-size: 1.3em;\n            font-weight: 600;\n        }\n        \n        /* Footer styling */\n        .footer { \n            text-align: center; \n            margin-top: 3em; \n            font-size: 0.9em; \n            color: #7f8c8d;\n            border-top: 2px solid #ecf0f1;\n            padding-top: 1em;\n        }\n        \n        /* Intro text special styling */\n        .intro-text {\n            font-size: 1.1em;\n            line-height: 1.8;\n            background: #f8f9fa;\n            padding: 2em;\n            border-radius: 15px;\n            border-left: 5px solid #667eea;\n            margin: 2em 0;\n        }\n        \n        /* Quote styling */\n        .wisdom-quote {\n            font-style: italic;\n            font-size: 1.2em;\n            background: #e8f4fd;\n            padding: 1.5em;\n            border-left: 5px solid #3498db;\n            border-radius: 0 10px 10px 0;\n            margin: 2em 0;\n            position: relative;\n        }\n        \n        .wisdom-quote::before {\n            content: '\"';\n            font-size: 4em;\n            color: #3498db;\n            position: absolute;\n            top: -0.2em;\n            left: 0.2em;\n            font-family: serif;\n        }\n        \n        /* Episode artwork placeholder */\n        .episode-artwork {\n            text-align: center;\n            margin: 2em 0;\n        }\n        \n        .episode-artwork-placeholder {\n            width: 300px;\n            height: 300px;\n            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n            border-radius: 20px;\n            display: inline-flex;\n            align-items: center;\n            justify-content: center;\n            color: white;\n            font-size: 1.2em;\n            font-weight: bold;\n            text-align: center;\n            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);\n            line-height: 1.4;\n        }\n    </style>\n</head>\n<body>\n\n    <!-- PAGE 1: COVER PAGE -->\n    <div class=\"page\">\n        <div class=\"podcast-header\">\n            <div class=\"podcast-logo\">\n                <h1 class=\"podcast-title\">Wins & Wrecks</h1>\n                <p class=\"podcast-subtitle\">The Business Stories Podcast</p>\n            </div>\n        </div>\n        \n        <div class=\"episode-artwork\">\n            <!-- Replace this placeholder with actual episode artwork -->\n            <div class=\"episode-artwork-placeholder\">\n                🎙️<br>\n                EPISODE ARTWORK<br>\n                <small>(300x300px)</small>\n            </div>\n        </div>\n        \n        <h1 class=\"episode-title\">From Lab to Launch: A Medical Affairs Leader's Journey Through Pharma's Biggest Wins & Wrecks</h1>\n        \n        <div class=\"guest-photo\">\n            <!-- Replace this placeholder with Evangelia's professional photo -->\n            <div class=\"guest-photo-placeholder\">EK</div>\n        </div>\n        \n        <p class=\"guest-name\">Dr. Evangelia Kallivretaki</p>\n        <p class=\"guest-title\">Medical Affairs Leader • Biopharmaceuticals Expert</p>\n\n        <div class=\"intro-text\">\n            <p><strong>Thank you for considering being our guest on Wins & Wrecks.</strong> This podcast is dedicated to the real stories behind professional success—not just the triumphs, but the crucial lessons learned from setbacks. Your career, bridging rigorous science with business strategy to launch groundbreaking treatments, is an inspiring narrative. We believe your experience will provide invaluable insights for our audience, and we would be honored to share your story.</p>\n        </div>\n\n        <div class=\"footer\">Episode Prep Package | Confidential Discussion Material</div>\n    </div>\n\n    <!-- PAGE 2: TALKING POINTS & QUESTIONS -->\n    <div class=\"page\">\n        <h2>🎯 Guest Bio</h2>\n        <p>Dr. Evangelia Kallivretaki is a seasoned Medical Affairs leader with over 15 years in biopharmaceuticals, specializing in bridging science and strategy across gastroenterology, neuroscience, and rare diseases. From launching entire ADHD portfolios to leading global teams at Takeda, she combines a Ph.D. in Biology with strategic business acumen to translate complex science into patient impact.</p>\n\n        <h2>🏆 Thematic Prompts</h2>\n        <p>To make our conversation engaging, we'll focus on a few key stories. Feel free to refine these or suggest others.</p>\n        \n        <h3>💪 Win Stories:</h3>\n        <ul>\n            <li><strong>European ADHD Portfolio Launch:</strong> The strategic orchestration behind launching Shire's entire ADHD portfolio across Europe (methylphenidate, lisdexamfetamine, guanfacine).</li>\n            <li><strong>Platform Building at Takeda:</strong> Building and leading Takeda's first-ever Gastroenterology Scientific Communications Platform, unifying a complex portfolio into a cohesive strategy.</li>\n        </ul>\n        \n        <h3>💥 Wreck Stories:</h3>\n        <ul>\n            <li><strong>Regulatory Roadblocks:</strong> A high-stakes evidence generation plan that hit unexpected regulatory roadblocks during a European launch, forcing rapid pivot strategies.</li>\n            <li><strong>Congress Investment Miss:</strong> A major congress presence investment that didn't deliver the expected stakeholder engagement or ROI—and the hard lessons learned.</li>\n        </ul>\n\n        <h2>🔍 Deep-Dive Interview Questions</h2>\n        <p>We'll dive into the \"how\" behind your stories with questions like:</p>\n        <ol>\n            <li><strong>Portfolio Launch Strategy:</strong> When you're tasked with launching a complex portfolio like ADHD across multiple European markets, what's your first strategic framework for prioritizing countries and evidence gaps?</li>\n            <li><strong>Team Scaling:</strong> You've built multiple high-performing teams—can you walk us through a specific time when you had to rapidly scale team capabilities for a new therapeutic area?</li>\n            <li><strong>Balancing Act:</strong> In medical affairs, how do you balance the tension between scientific rigor and commercial timeline pressures when developing evidence generation strategies?</li>\n            <li><strong>Stakeholder Adaptation:</strong> You've worked across rare diseases, neuroscience, and gastroenterology—how do you adapt your stakeholder engagement approach between different KOL communities?</li>\n            <li><strong>ROI Decision Making:</strong> What's your decision-making process for determining which medical congresses and symposia will actually move the needle versus just maintaining presence?</li>\n        </ol>\n\n        <h2>🛠️ Key Frameworks/Tips to Discuss</h2>\n        <p>We'll also ask for a few actionable takeaways for our audience, such as:</p>\n        <ul>\n            <li><strong>Evidence Gap Analysis Matrix:</strong> A systematic approach to prioritizing unmet medical needs versus competitive landscape and regulatory requirements.</li>\n            <li><strong>Cross-Functional Alignment Canvas:</strong> A framework for aligning medical affairs objectives with commercial and regulatory goals.</li>\n            <li><strong>KOL Engagement Impact Scoring:</strong> A methodology for measuring and optimizing thought leader relationships based on influence, reach, and strategic value.</li>\n        </ul>\n    </div>\n\n    <!-- PAGE 3: OUTRO & NEXT STEPS -->\n    <div class=\"page\">\n        <h2>🎉 Episode Takeaways & Guest Spotlight</h2>\n        <p>Thank you, Dr. Kallivretaki, for sharing your incredible journey with us. Your ability to translate complex science into real patient impact is a true masterclass in strategic leadership.</p>\n\n        <div class=\"wisdom-quote\">\n            <p><strong>A Final Word of Wisdom:</strong> Our key takeaway from your story: in the high-stakes world of medical innovation, the biggest breakthroughs often come from the ability to navigate a wreck, not just celebrate a win. Your resilience and strategic mindset in the face of roadblocks are what truly drive meaningful progress.</p>\n        </div>\n\n        <div class=\"contact-section\">\n            <h2>🤝 Connect & Continue the Conversation</h2>\n            <p><strong>The Guest:</strong> Follow Dr. Kallivretaki's insights and connect with her directly:</p>\n            <ul class=\"contact-info\">\n                <li><strong>LinkedIn:</strong> <a href=\"https://linkedin.com/in/evangeliakallivretaki\">linkedin.com/in/evangeliakallivretaki</a></li>\n                <li><strong>Email:</strong> <a href=\"mailto:evangelia@email.com\">evangelia@email.com</a> <em>(placeholder)</em></li>\n            </ul>\n\n            <p><strong>The Podcast:</strong> Don't let the conversation end here:</p>\n            <ul class=\"contact-info\">\n                <li>🎙️ <strong>Subscribe to Wins & Wrecks</strong> for more honest stories about triumph and resilience</li>\n                <li>📢 <strong>Share this episode</strong> with your network and join the discussion</li>\n                <li>💼 <strong>Follow us on LinkedIn:</strong> <a href=\"https://linkedin.com/company/wins-and-wrecks-podcast\">linkedin.com/company/wins-and-wrecks-podcast</a></li>\n            </ul>\n        </div>\n\n        <div class=\"call-to-action\">\n            <p>🎯 Ready to record? Let's schedule a brief face-to-face meeting to finalize the recording date and discuss logistics!</p>\n        </div>\n\n        <div class=\"footer\">\n            <p><strong>Contact:</strong> [Your Name] | [Your Email] | [Your Phone]</p>\n            <p><em>Thank you for considering Wins & Wrecks. We're excited to share your story!</em></p>\n        </div>\n    </div>\n\n</body>\n</html>\n"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        0
+      ],
+      "id": "16fbc53d-7f90-44b1-a147-bb62c24297d4",
+      "name": "HTML"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "321ca7b8-dd5e-4b43-8312-0d21dbfb8694",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "091518b4626a4d4b9f9f2a52f9a6b162e5e3f6cb59a98f5a8a5b51db63685ed2"
+  },
+  "id": "jZsEVkbFJR5gUtt6",
+  "tags": [
+    {
+      "createdAt": "2025-08-13T20:28:03.030Z",
+      "updatedAt": "2025-08-13T20:28:03.030Z",
+      "id": "8ffgWbgvvnAWBeX3",
+      "name": "PoC"
+    }
+  ]
+}

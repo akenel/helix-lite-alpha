@@ -1,7 +1,0 @@
-users:
-  angel:
-    password: "$argon2id$v=19$m=65536,t=2,p=1$k0GZ2kWfK2+DbGm0PhZf8Q$0L7W9jrsjf6o39..."
-    displayname: "Angel"
-    email: angel@example.com
-    groups:
-      - admins
