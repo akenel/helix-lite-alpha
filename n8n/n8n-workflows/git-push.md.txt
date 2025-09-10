@@ -1,0 +1,59 @@
+# First, add all your new and modified files
+git status
+git add .
+
+# Now, commit the changes with a descriptive message
+git commit -m "feat: completed end-to-end AI podcast prep generation workflow"
+
+git branch -M main
+git remote add origin https://github.com/akenel/infra-lite.git
+
+# Finally, push your changes to the remote repository
+git push -u origin main
+git status
+
+
+guest_name +++
+guest_email +++
+profile_text +++
+job_description
+
+prompt_type
+
+
+
+curl --location --request POST "http://localhost:5678/webhook-test/oracle-podcast_v3" \
+--header 'Content-Type: application/json' \
+--data-raw '{
+  "jobDescription": "'"$(cat my_jd.txt)"'",
+  "candidateCV": "'"$(cat my_cv.txt)"'"
+}'
+
+/home/angel/helix-hub/infra-lite/podcast-studio/oracle-prompts/jds/payload.json
+
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "body": {
+      "name": "Johnny Depp",
+      "email": "j.d@example.com",
+      "profile_text": "I am a professional it expert with java script and python and 5 years experience coding stuff.",
+      "job_description": "Data Scientist at a tech company.",
+      "prompt_type": "general"
+    }
+  }' \
+  "http://localhost:5678/webhook-test/oracle-podcast_v3"
+  
+  
+  
+  curl --location --request POST 'https://n8n.helix.local/webhook/your-new-webhook-id' \
+--header 'Content-Type: application/json' \
+--data-binary "@payload.json"
+
+  
+  
+  curl --location --request POST "http://localhost:5678/webhook-test/oracle-podcast_v3" \
+--header 'Content-Type: application/json' \
+--data-binary "@payload.json"
+
+  

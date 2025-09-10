@@ -1,0 +1,391 @@
+{
+  "name": "oracle-podcast_v3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "oracle-podcast_v3",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b9cb23c2-336c-4a7a-8e2c-a46842ececd5",
+      "name": "🎯 Webhook Input",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        400,
+        40
+      ],
+      "webhookId": "oracle-podcast-studio"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "processing_id",
+              "value": "=podcast_{{ DateTime.now().toUnixInteger() }}_{{ $json.body.guest_name.toLowerCase().replace(/\\s+/g, '_') }}"
+            },
+            {
+              "name": "guest_name",
+              "value": "={{ $json.body.guest_name }}"
+            },
+            {
+              "name": "guest_email",
+              "value": "={{ $json.body.guest_email }}"
+            },
+            {
+              "name": "profile_text",
+              "value": "={{ $json.body.profile_text }}"
+            },
+            {
+              "name": "job_description",
+              "value": "={{ $json.body.job_description || 'Professional' }}"
+            },
+            {
+              "name": "prompt_type",
+              "value": "={{ $json.body.prompt_type || 'general' }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ DateTime.now().toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a4d2926c-fbd6-4ac4-ae81-f10774b4d302",
+      "name": "🔍 Data Processor",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        624,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "filePath": "=/podcast-studio/oracle-prompts/{{ $json.prompt_type }}.json",
+        "dataPropertyName": "=data from name : {{ $json.body.guest_name }} with Email: {{ $json.body.guest_email }} and CV profile profile_text : {{ $json.body.profile_text }} and the Role job_description\" JD Job Description: {{ $json.body.job_description }}"
+      },
+      "id": "ac4bbcf7-3abc-4363-9247-a272eaecddf4",
+      "name": "🔮 Oracle Prompt Loader",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        848,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Load and process oracle prompt\nconst inputData = $input.first().json;\n\n// FIX: This is the corrected way to access the binary data.\n// $input.first() gets the single item from the Oracle Prompt Loader node.\n// .binary then gives you access to the binary data object.\nconst binaryData = $input.first().binary;\nconsole.log(binaryData);\n\ntry {\n  // Read the oracle prompt file.\n  // The key for the binary file is often the filename. We can get it dynamically.\n  const binaryKey = Object.keys(binaryData)[0];\n  const oracleFile = binaryData[binaryKey];\n\n  // This line is now fixed because 'oracleFile.data' correctly points to the binary data.\n  const oracleContent = Buffer.from(oracleFile.data, 'base64').toString('utf8');\n  const oraclePrompt = JSON.parse(oracleContent);\n  \n  // Build the prompt based on oracle template\n  let finalPrompt;\n  \n  if (inputData.prompt_type === 'corporate_climber') {\n    finalPrompt = `Create a professional podcast interview prep package for:\n\nName: ${inputData.guest_name}\nEmail: ${inputData.guest_email}\nProfile: ${inputData.profile_text}\nRole: ${inputData.job_description}\n\nGenerate a CORPORATE CLIMBER style interview package focusing on:\n- Executive leadership development\n- Strategic decision-making and business impact\n- Team management and organizational growth\n- Boardroom presence and corporate excellence\n\nReturn ONLY valid JSON in this exact format:\n{\n  \"episode_title\": \"Executive leadership focused title\",\n  \"guest_bio\": \"Professional biography emphasizing leadership credentials\",\n  \"leadership_story_1\": \"Key leadership achievement with business impact\",\n  \"leadership_story_2\": \"Strategic decision that drove results\",\n  \"team_impact_story\": \"Team development or organizational transformation\",\n  \"question_1\": \"Strategic leadership and vision question\",\n  \"question_2\": \"Team management and people development question\",\n  \"question_3\": \"Business strategy and market positioning question\",\n  \"professional_bio\": \"Extended executive summary with quantified achievements\",\n  \"talking_points\": \"Key discussion points for executive-level interview\"\n}\n\nFocus on leadership impact, strategic thinking, business results, and executive presence.`;\n  } else {\n    // Default prompt\n    finalPrompt = `Create a professional podcast episode package for:\n\nName: ${inputData.guest_name}\nProfile: ${inputData.profile_text}\nRole: ${inputData.job_description}\n\nReturn valid JSON only:\n{\n\"episode_title\": \"title\",\n\"guest_bio\": \"bio\",\n\"industry_focus\": \"industry\",\n\"win_story_1\": \"story 1\",\n\"win_story_2\": \"story 2\",\n\"question_1\": \"question?\",\n\"question_2\": \"question?\", \n\"question_3\": \"question?\",\n\"key_insights\": [\"insight1\", \"insight2\", \"insight3\"],\n\"episode_summary\": \"summary\"\n}`;\n  }\n  \n  // Return combined data\n  return [{\n    json: {\n      ...inputData,\n      oracle_prompt: oraclePrompt,\n      final_prompt: finalPrompt,\n      oracle_loaded: true\n    }\n  }];\n  \n} catch (error) {\n  // Fallback if oracle file not found or parsing failed\n  const fallbackPrompt = `Create a professional podcast episode package for:\n\nName: ${inputData.guest_name}\nProfile: ${inputData.profile_text}\nRole: ${inputData.job_description}\n\nReturn valid JSON only:\n{\n\"episode_title\": \"title\",\n\"guest_bio\": \"bio\",\n\"industry_focus\": \"industry\",\n\"win_story_1\": \"story 1\",\n\"win_story_2\": \"story 2\",\n\"question_1\": \"question?\",\n\"question_2\": \"question?\", \n\"question_3\": \"question?\",\n\"key_insights\": [\"insight1\", \"insight2\", \"insight3\"],\n\"episode_summary\": \"summary\"\n}`;\n  \n  return [{\n    json: {\n      ...inputData,\n      final_prompt: fallbackPrompt,\n      oracle_loaded: false,\n      oracle_error: error.message\n    }\n  }];\n}"
+      },
+      "id": "93152ec8-9609-4503-9b59-9043fb7b8f24",
+      "name": "🔧 Prompt Builder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiOutput = items[0].json.output;\nlet webhookBody = {};\n\n// Find the webhook body, it could be in a few places depending on the node configuration\nif (items[0].json.body) {\n  webhookBody = items[0].json.body;\n} else if (items[0].json.parameters && items[0].json.parameters.body) {\n  webhookBody = items[0].json.parameters.body;\n} else {\n  // If all else fails, assume the initial item contains the body directly\n  webhookBody = items[0].json;\n}\n\nlet jsonString = aiOutput;\n\n// Check for and remove the JSON markdown fences if they exist\nif (jsonString.startsWith('```json')) {\n  jsonString = jsonString.replace(/^```json\\s*|```$/g, '').trim();\n}\n\ntry {\n  // Parse the clean JSON string into a JavaScript object\n  const parsedJson = JSON.parse(jsonString);\n\n  // Function to recursively replace template variables in the object\n  function replaceTemplateVars(obj) {\n    for (const key in obj) {\n      if (typeof obj[key] === 'string') {\n        let value = obj[key];\n        // Replace each N8N template variable with its value from the webhook body\n        // We use a regex to ensure a global replacement\n        value = value.replace(/{{ \\$json\\.body\\.guest_name }}/g, webhookBody.guest_name);\n        value = value.replace(/{{ \\$json\\.body\\.guest_email }}/g, webhookBody.guest_email);\n        value = value.replace(/{{ \\$json\\.body\\.profile_text }}/g, webhookBody.profile_text);\n        value = value.replace(/{{ \\$json\\.body\\.jobDescription }}/g, webhookBody.jobDescription);\n        obj[key] = value;\n      } else if (typeof obj[key] === 'object' && obj[key] !== null) {\n        replaceTemplateVars(obj[key]);\n      }\n    }\n  }\n\n  // Replace all the variables in the parsed JSON object\n  replaceTemplateVars(parsedJson);\n\n  // Return the final, clean JSON object for the next node\n  return [{ json: parsedJson }];\n\n} catch (error) {\n  // If parsing fails, return an error message\n  console.error(\"Failed to process JSON from AI:\", error);\n  return [{ json: { error: \"Failed to process JSON from AI\", originalContent: aiOutput } }];\n}\n"
+      },
+      "id": "def35638-039f-47dc-9274-7fae5fdecb0e",
+      "name": "🔧 Content Processor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        400,
+        -288
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🎪 SIMPLE CHUCK ACADEMY HTML GENERATOR (PROVEN TO WORK!)\nconst inputData = items[0].json;\nconst contentType = inputData.content_type || 'professional';\n\nconsole.log('🎨 HTML Generator - Content Type:', contentType);\n\nif (contentType === 'chuck_academy') {\n  // 🎪 CHUCK ACADEMY MODE - Using the proven simple template!\n  console.log('🎪 Generating Chuck Academy HTML');\n  \n  // Simple template that we know works!\n  const htmlContent = `<!DOCTYPE html>\n<html>\n<head>\n    <title>🎪 Chuck Norris Academy</title>\n    <style>\n        body { font-family: Arial; background: #1e3c72; color: white; padding: 20px; }\n        .container { max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 30px; border-radius: 15px; }\n        .title { font-size: 2em; text-align: center; margin-bottom: 20px; }\n        .section { margin: 20px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; }\n        .chuck-quote { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; text-align: center; font-style: italic; font-size: 1.2em; }\n        .career-item { background: rgba(254, 202, 87, 0.2); padding: 10px; margin: 5px; border-radius: 5px; display: inline-block; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"title\">🎪 CHUCK NORRIS ACADEMY</div>\n        <div class=\"subtitle\" style=\"text-align: center; margin-bottom: 30px;\">Where AI Failures Become Career Legends!</div>\n        \n        <div class=\"section\">\n            <h2>🎯 Career Warrior: ${inputData.guest_name}</h2>\n            <p><strong>Email:</strong> ${inputData.guest_email}</p>\n            <p><strong>Academy Session:</strong> #${inputData.academy_session}</p>\n            <p><strong>Profile:</strong> ${inputData.profile_text}</p>\n        </div>\n        \n        <div class=\"chuck-quote\">\n            \"${inputData.chuck_joke}\"\n        </div>\n        \n        <div class=\"section\">\n            <h3>💡 Chuck's Career Advice</h3>\n            <p>${inputData.chuck_advice}</p>\n        </div>\n        \n        <div class=\"section\">\n            <h3>🚀 Recommended Career Paths</h3>\n            ${inputData.career_suggestions.map(career => `<div class=\"career-item\">${career}</div>`).join('')}\n        </div>\n        \n        <div class=\"section\">\n            <h3>📚 Career Resources</h3>\n            ${inputData.career_links.map(link => `<p><a href=\"${link}\" style=\"color: #48dbfb;\">${link}</a></p>`).join('')}\n        </div>\n        \n        <div class=\"section\">\n            <h3>🤖 What Happened</h3>\n            <p><strong>Tech Issue:</strong> ${inputData.error_context}</p>\n            <p><strong>Encouragement:</strong> ${inputData.encouragement}</p>\n        </div>\n        \n        <div style=\"text-align: center; margin-top: 30px; font-size: 0.9em; opacity: 0.8;\">\n            <p>Session: ${inputData.academy_session} | Rating: ${inputData.chuck_rating} | Quality: ${inputData.content_quality}</p>\n            <p>Generated: ${inputData.generation_timestamp}</p>\n        </div>\n    </div>\n</body>\n</html>`;\n  \n  return [{\n    json: {\n      ...inputData,\n      html_content: htmlContent,\n      html_type: \"chuck_academy\",\n      file_name: `chuck-academy-${inputData.processing_id}.html`,\n      title: inputData.episode_title,\n      generation_status: \"chuck_academy_success\"\n    }\n  }];\n  \n} else {\n  // ✅ PROFESSIONAL MODE - AI worked perfectly!\n  console.log('✅ Generating Professional Interview HTML');\n  \n  const professionalHtml = `<!DOCTYPE html>\n<html>\n<head>\n    <title>${inputData.episode_title || 'Professional Interview'}</title>\n    <style>\n        body { font-family: Georgia, serif; background: #f8f9fa; color: #333; padding: 20px; }\n        .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }\n        .header { text-align: center; border-bottom: 3px solid #007bff; padding-bottom: 20px; margin-bottom: 30px; }\n        .title { font-size: 2.5em; color: #007bff; margin-bottom: 10px; }\n        .section { margin: 30px 0; padding: 20px; border-left: 4px solid #007bff; background: #f8f9fa; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <div class=\"title\">${inputData.episode_title || 'Professional Interview Package'}</div>\n        </div>\n        \n        <div class=\"section\">\n            <h3>Guest Information</h3>\n            <p><strong>Name:</strong> ${inputData.guest_name}</p>\n            <p><strong>Email:</strong> ${inputData.guest_email}</p>\n            <p><strong>Profile:</strong> ${inputData.profile_text}</p>\n            <p><strong>Role:</strong> ${inputData.job_description}</p>\n        </div>\n        \n        <div class=\"section\">\n            <h3>Biography</h3>\n            <p>${inputData.guest_bio || 'Professional biography will be generated here.'}</p>\n        </div>\n        \n        <div style=\"margin-top: 40px; font-size: 0.9em; color: #6c757d;\">\n            <p>AI Model: ${inputData.ai_model} | Generated: ${inputData.generation_timestamp}</p>\n            <p>Processing ID: ${inputData.processing_id}</p>\n        </div>\n    </div>\n</body>\n</html>`;\n  \n  return [{\n    json: {\n      ...inputData,\n      html_content: professionalHtml,\n      html_type: \"professional\",\n      file_name: `interview-${inputData.processing_id}.html`,\n      title: inputData.episode_title,\n      generation_status: \"professional_success\"\n    }\n  }];\n}"
+      },
+      "id": "c410b59b-0b6d-4c24-83b9-3fee14c5c8e7",
+      "name": "� HTML Generator (Pro + Chuck)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<!DOCTYPE html>\n<html>\n<head>\n    <title>{{ $json.episode_title }}</title>\n    <style>\n        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');\n        body { font-family: 'Inter', sans-serif; background: #f0f2f5; color: #333; margin: 0; padding: 20px; }\n        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }\n        .header { background: linear-gradient(45deg, #007bff, #0056b3); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center; }\n        .header h1 { margin: 0; font-size: 2em; font-weight: 700; }\n        .section { margin-top: 25px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }\n        .section h2 { margin-top: 0; color: #007bff; border-bottom: 2px solid #e9ecef; padding-bottom: 8px; }\n        .subsection { margin-top: 20px; }\n        .subsection h3 { color: #555; margin-bottom: 8px; }\n        .list-item { background: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 8px; }\n        .bio-text { font-style: italic; color: #495057; line-height: 1.6; }\n        .joke-section { text-align: center; margin-top: 30px; padding: 20px; border: 1px dashed #ced4da; border-radius: 8px; background: #fff8e1; }\n        .joke-text { font-style: italic; font-weight: 600; color: #333; }\n        .footer { text-align: center; margin-top: 30px; font-size: 0.8em; color: #888; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>{{ $json.episode_title }}</h1>\n        </div>\n\n        <div class=\"section\">\n            <h2>Guest Information</h2>\n            <p><strong>Name:</strong> {{ $('🎯 Webhook Input').item.json.body.guest_name }}</p>\n            <p><strong>Email:</strong> {{ $('🎯 Webhook Input').item.json.body.guest_email }}</p>\n            <p><strong>Profile:</strong> {{ $json.professional_bio }}</p>\n            <p><strong>Role:</strong> {{ $('🎯 Webhook Input').item.json.body.job_description }}</p>\n        </div>\n\n        <div class=\"section\">\n            <h2>Podcast Prep Content</h2>\n            <div class=\"subsection\">\n                <h3>Guest Bio</h3>\n                <p class=\"bio-text\">{{ $json.guest_bio }}</p>\n            </div>\n            <div class=\"subsection\">\n                <h3>Talking Points</h3>\n                <ul>\n                    {{ $json.talking_points.split(';').map(p => `<li>${p.trim()}</li>`).join('') }}\n                </ul>\n            </div>\n            <div class=\"subsection\">\n                <h3>Interview Questions</h3>\n                <ul>\n                    <li>{{ $json.question_1 }}</li>\n                    <li>{{ $json.question_2 }}</li>\n                    <li>{{ $json.question_3 }}</li>\n                </ul>\n            </div>\n            <div class=\"subsection\">\n                <h3>Key Insights & Stories</h3>\n                <p><strong>Win Story 1:</strong> {{ $json.win_story_1 }}</p>\n                <p><strong>Win Story 2:</strong> {{ $json.win_story_2 }}</p>\n                <p><strong>Industry Insight:</strong> {{ $json.industry_insight }}</p>\n            </div>\n        </div>\n\n        <div class=\"joke-section\">\n            <h3>Random Chuck Norris Fact</h3>\n            <p id=\"chuck-norris-joke\" class=\"joke-text\">Loading...</p>\n        </div>\n\n        <div class=\"footer\">\n            <p>Generated by AI | Processed on {{ $now }}</p>\n        </div>\n    </div>\n    \n    <script>\n        document.addEventListener('DOMContentLoaded', () => {\n            fetch('https://api.chucknorris.io/jokes/random')\n                .then(response => response.json())\n                .then(data => {\n                    const jokeElement = document.getElementById('chuck-norris-joke');\n                    jokeElement.textContent = data.value;\n                })\n                .catch(error => {\n                    const jokeElement = document.getElementById('chuck-norris-joke');\n                    jokeElement.textContent = 'Chuck Norris roundhouse kicked the joke API. Joke unavailable.';\n                    console.error('Error fetching Chuck Norris joke:', error);\n                });\n        });\n    </script>\n</body>\n</html>\n",
+        "options": {}
+      },
+      "id": "3a202cd0-6226-4b08-adaa-82f680a34473",
+      "name": "🎪 Oracle HTML Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v3.1:671b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1592,
+        264
+      ],
+      "id": "65244502-607d-4daa-a2c2-84fad39f5166",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "RB9frpZqmT4XuBhR",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.aiPrompt }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1520,
+        40
+      ],
+      "id": "1c6b7119-e768-49d8-a22a-73c4596bb564",
+      "name": "🤖 AI Content Generator"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "Helix-App",
+        "emailType": "html",
+        "message": "={{ $json.html_content }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2544,
+        -56
+      ],
+      "id": "25b0d1d9-f38e-4bb3-ac85-3ed64804a8e4",
+      "name": "Create a draft",
+      "webhookId": "11c8edd7-9dcc-468c-86bf-0e901b793e58",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "b83Lh5K2en1y9UJK",
+          "name": "Helix-App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "a@k.com",
+        "toEmail": "a@k.com",
+        "subject": "Helix PodCat Script",
+        "html": "=<!DOCTYPE html>\n<html>\n<head>\n    <title>{{ $json.episode_title }}</title>\n    <style>\n        body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; margin: 0; padding: 20px; }\n        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }\n        .header { background: #007bff; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }\n        .header h1 { margin: 0; font-size: 1.5em; }\n        .section { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }\n        .section h2 { margin-top: 0; color: #007bff; border-bottom: 2px solid #eee; padding-bottom: 5px; }\n        .subsection { margin-top: 15px; }\n        .subsection h3 { color: #555; margin-bottom: 5px; }\n        .list-item { background: #e9ecef; padding: 8px; border-radius: 5px; margin-bottom: 5px; }\n        .bio-text { font-style: italic; color: #666; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>{{ $json.episode_title }}</h1>\n        </div>\n\n        <div class=\"section\">\n            <h2>Guest Information</h2>\n            <p><strong>Name:</strong> {{ $('🔧 Prompt Builder').item.json.body.guest_name }}</p>\n            <p><strong>Email:</strong> {{ $('🔧 Prompt Builder').item.json.body.guest_email }}</p>\n            <p><strong>Profile:</strong> {{ $json.professional_bio }}</p>\n            <p><strong>Role:</strong> {{ $('🔧 Prompt Builder').item.json.body.job_description }}</p>\n        </div>\n\n        <div class=\"section\">\n            <h2>Podcast Prep Content</h2>\n            <div class=\"subsection\">\n                <h3>Guest Bio</h3>\n                <p class=\"bio-text\">{{ $json.guest_bio }}</p>\n            </div>\n            <div class=\"subsection\">\n                <h3>Talking Points</h3>\n                <ul>\n                    {{ $json.talking_points.split(';').map(p => `<li>${p.trim()}</li>`).join('') }}\n                </ul>\n            </div>\n            <div class=\"subsection\">\n                <h3>Interview Questions</h3>\n                <ul>\n                    <li>{{ $json.question_1 }}</li>\n                    <li>{{ $json.question_2 }}</li>\n                    <li>{{ $json.question_3 }}</li>\n                </ul>\n            </div>\n            <div class=\"subsection\">\n                <h3>Key Insights & Stories</h3>\n                <p><strong>Win Story 1:</strong> {{ $json.win_story_1 }}</p>\n                <p><strong>Win Story 2:</strong> {{ $json.win_story_2 }}</p>\n                <p><strong>Industry Insight:</strong> {{ $json.industry_insight }}</p>\n            </div>\n        </div>\n\n        <div style=\"text-align: center; margin-top: 20px; font-size: 0.8em; color: #888;\">\n            <p>Generated by AI | Processed on {{ $now }}</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2544,
+        136
+      ],
+      "id": "a366e93e-d87c-4bd4-bf76-3baf64f6858c",
+      "name": "Send email",
+      "webhookId": "95d81625-eae8-42fe-a137-1a49d619ab5e",
+      "credentials": {
+        "smtp": {
+          "id": "GRLvyfYxoPNBgpcm",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get values from previous node\nconst webhook = $('🎯 Webhook Input').first().json.body;\n\nconst guestName = webhook.guest_name || \"Unknown Guest\";\nconst guestEmail = webhook.guest_email || \"Unknown Email\";\nconst profileText = webhook.profile_text || \"No profile provided\";\nconst jobDescription = webhook.job_description || \"No job description provided\";\n\n// Build the AI prompt\nconst aiPrompt = `\nCreate a professional podcast interview prep package for:\n\nName: ${guestName}\n\nEmail: ${guestEmail}\n\nProfile: ${profileText}\n\nRole: ${jobDescription}\n\nGenerate a GENERAL PROFESSIONAL interview package focusing on:\n- Professional background and expertise\n- Career achievements and milestones\n- Industry insights and experience\n- Personal brand and unique value proposition\n- also re-make anf summarize into a sensible version of the role into a $input.first().json.body.prompt_type job descrpition suitable for $input.first().json.body.profile_text \n\nReturn ONLY valid JSON in this exact format:\n{\n  \"episode_title\": \"Professional focused title\",\n  \"guest_bio\": \"Professional biography highlighting expertise\",\n  \"win_story_1\": \"Key professional achievement\",\n  \"win_story_2\": \"Career milestone or success story\", \n  \"industry_insight\": \"Valuable industry perspective or trend\",\n  \"question_1\": \"Professional background and expertise question\",\n  \"question_2\": \"Career journey and achievements question\",\n  \"question_3\": \"Industry insights and future outlook question\",\n  \"professional_bio\": \"Extended professional summary with key accomplishments\",\n  \"talking_points\": \"Key discussion points for professional interview\"\n}\n\nFocus on professional expertise, career achievements, industry knowledge, and personal brand.\n\nHere is the Job Description:\n---START JOB DESCRIPTION---\n${jobDescription}\n---END JOB DESCRIPTION---\n\nHere is the Candidate's CV:\n---START CANDIDATE CV---\n${profileText}\n---END CANDIDATE CV---\n`;\n\nreturn {\n  json: {\n    aiPrompt\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        40
+      ],
+      "id": "71a309d3-4af8-4c95-ae54-7a4cdc630955",
+      "name": "🔧  Build aiPrompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawOutput = items[0].json.output;\n\n// This regular expression finds the content inside a markdown code block.\nconst jsonContentMatch = rawOutput.match(/```json\\n(.*)\\n```/s);\n\n// Check if a match was found and the content is not empty.\nif (jsonContentMatch && jsonContentMatch[1]) {\n  try {\n    // Parse the extracted string into a JavaScript object.\n    const parsedJson = JSON.parse(jsonContentMatch[1]);\n    // Return the parsed JSON object for the next node to use.\n    return [{ json: parsedJson }];\n  } catch (error) {\n    // If parsing fails, return an error message to the next node.\n    console.error(\"Failed to parse JSON content from AI response:\", error);\n    return [{ json: { error: \"Failed to parse JSON content from AI response\", originalContent: rawOutput } }];\n  }\n} else {\n  // If the markdown fences are not found, the entire output might be the JSON string.\n  try {\n    const parsedJson = JSON.parse(rawOutput);\n    return [{ json: parsedJson }];\n  } catch (error) {\n    console.error(\"JSON content not found or is invalid:\", error);\n    return [{ json: { error: \"JSON content not found or is invalid\", originalContent: rawOutput } }];\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1872,
+        40
+      ],
+      "id": "e574c312-8f02-430b-98d2-89cadfdc8735",
+      "name": "🔧 extract pure JSON"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "🎯 Webhook Input": {
+      "main": [
+        [
+          {
+            "node": "🔍 Data Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Data Processor": {
+      "main": [
+        [
+          {
+            "node": "🔮 Oracle Prompt Loader",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔮 Oracle Prompt Loader": {
+      "main": [
+        [
+          {
+            "node": "🔧 Prompt Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 Prompt Builder": {
+      "main": [
+        [
+          {
+            "node": "🔧  Build aiPrompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 Content Processor": {
+      "main": [
+        []
+      ]
+    },
+    "� HTML Generator (Pro + Chuck)": {
+      "main": [
+        [
+          {
+            "node": "🎪 Oracle HTML Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🤖 AI Content Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 AI Content Generator": {
+      "main": [
+        [
+          {
+            "node": "🔧 extract pure JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎪 Oracle HTML Response": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        []
+      ]
+    },
+    "🔧  Build aiPrompt": {
+      "main": [
+        [
+          {
+            "node": "🤖 AI Content Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 extract pure JSON": {
+      "main": [
+        [
+          {
+            "node": "� HTML Generator (Pro + Chuck)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "37d41544-9157-47b1-8203-f0949a57a47e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "63f725b2eedb343af11a518bea15a3ad45564cfb1d4bb8e65c0084f4f07b09e3"
+  },
+  "id": "NhIqFyrxMTSPlTeP",
+  "tags": [
+    {
+      "createdAt": "2025-09-09T17:16:33.683Z",
+      "updatedAt": "2025-09-09T17:16:33.683Z",
+      "id": "bXz3jgwOSlsYaLSO",
+      "name": "PoC"
+    }
+  ]
+}
