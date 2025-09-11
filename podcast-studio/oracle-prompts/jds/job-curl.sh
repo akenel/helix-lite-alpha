@@ -25,7 +25,4 @@ JSON_PAYLOAD=$(printf '{
   "prompt_type": "%s"
 }' "$GUEST_NAME" "$GUEST_EMAIL" "$PROFILE_TEXT_ESCAPED" "$JOB_DESC_ESCAPED" "$PROMPT_TYPE")
 
-# --- Step 4: Send the payload with curl ---
-curl --location --request POST "http://localhost:5678/webhook-test/oracle-podcast_v3" \
---header 'Content-Type: application/json' \
---data-raw "$JSON_PAYLOAD"
+# --- Step 4: Send the payload wi

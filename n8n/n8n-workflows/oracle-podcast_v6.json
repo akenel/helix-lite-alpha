@@ -1,0 +1,1400 @@
+{
+  "name": "oracle-podcast_v6",
+  "nodes": [
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "processing_id",
+              "value": "=podcast_{{ DateTime.now().toUnixInteger() }}_{{ $json.body.guest_name.toLowerCase().replace(/\\s+/g, '_') }}"
+            },
+            {
+              "name": "guest_name",
+              "value": "={{ $json.body.guest_name }}"
+            },
+            {
+              "name": "guest_email",
+              "value": "={{ $json.body.guest_email }}"
+            },
+            {
+              "name": "profile_text",
+              "value": "={{ $json.body.profile_text }}"
+            },
+            {
+              "name": "job_description",
+              "value": "={{ $json.body.job_description || 'Professional' }}"
+            },
+            {
+              "name": "prompt_type",
+              "value": "={{ $json.body.prompt_type || 'general' }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ DateTime.now().toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "857591fb-b63c-468a-a4f2-7c23bc8dde06",
+      "name": "🔍 Data Processor",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        624,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "filePath": "/podcast-studio/oracle-prompts/general.json",
+        "dataPropertyName": "=Name :\n{{ $json.body.body.guest_name }}\n Email: \n{{ $json.body.body.guest_email }}\nCV profile profile_text :\n{{ $json.body.body.profile_text }}\nRole job_description: \n{{ $json.body.body.job_description }}"
+      },
+      "id": "943dd14e-fc11-4c91-9d84-e21da08d3f63",
+      "name": "🔮 Oracle Prompt Loader",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        848,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get values from the previous node's output\nconst guestName = $input.first().json.body.guest_name || \"Unknown Guest\";\nconst guestEmail = $input.first().json.body.guest_email || \"Unknown Email\";\nconst profileText = $input.first().json.body.profile_text || \"No profile provided\";\nconst jobDescription = $input.first().json.body.job_description || \"No job description provided\";\nconst promptType = $input.first().json.body.prompt_type || \"general\";\n\n// Build the AI prompt using correct JavaScript template literal syntax\nconst aiPrompt = `\nCreate a professional podcast interview prep package for:\n\nName: ${guestName}\n\nEmail: ${guestEmail}\n\nProfile: ${profileText}\n\nRole: ${jobDescription}\n\nGenerate a ${promptType.toUpperCase()} PROFESSIONAL interview package focusing on:\n- Professional background and expertise\n- Career achievements and milestones\n- Industry insights and experience\n- Personal brand and unique value proposition\n- also re-make and summarize into a sensible version of the role into a ${promptType} job description suitable for ${profileText} \n\nReturn ONLY valid JSON in this exact format:\n{\n  \"episode_title\": \"Professional focused title\",\n  \"guest_bio\": \"Professional biography highlighting expertise\",\n  \"win_story_1\": \"Key professional achievement\",\n  \"win_story_2\": \"Career milestone or success story\", \n  \"industry_insight\": \"Valuable industry perspective or trend\",\n  \"question_1\": \"Professional background and expertise question\",\n  \"question_2\": \"Career journey and achievements question\",\n  \"question_3\": \"Industry insights and future outlook question\",\n  \"professional_bio\": \"Extended professional summary with key accomplishments\",\n  \"talking_points\": \"Key discussion points for professional interview\"\n}\n\nFocus on professional expertise, career achievements, industry knowledge, and personal brand.\n\nHere is the Job Description:\n---START JOB DESCRIPTION---\n${jobDescription}\n---END JOB DESCRIPTION---\n\nHere is the Candidate's CV:\n---START CANDIDATE CV---\n${profileText}\n---END CANDIDATE CV---\n`;\n\nreturn {\n  json: {\n    aiPrompt\n  }\n};"
+      },
+      "id": "2f755be3-823e-45f3-9eac-53dcc471aba9",
+      "name": "🔧 Prompt Builder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<!DOCTYPE html>\n<html>\n<head>\n    <title>{{ $json.episode_title }}</title>\n    <style>\n        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');\n        body { font-family: 'Inter', sans-serif; background: #f0f2f5; color: #333; margin: 0; padding: 20px; }\n        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }\n        .header { background: linear-gradient(45deg, #007bff, #0056b3); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center; }\n        .header h1 { margin: 0; font-size: 2em; font-weight: 700; }\n        .section { margin-top: 25px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }\n        .section h2 { margin-top: 0; color: #007bff; border-bottom: 2px solid #e9ecef; padding-bottom: 8px; }\n        .subsection { margin-top: 20px; }\n        .subsection h3 { color: #555; margin-bottom: 8px; }\n        .list-item { background: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 8px; }\n        .bio-text { font-style: italic; color: #495057; line-height: 1.6; }\n        .joke-section { text-align: center; margin-top: 30px; padding: 20px; border: 1px dashed #ced4da; border-radius: 8px; background: #fff8e1; }\n        .joke-text { font-style: italic; font-weight: 600; color: #333; }\n        .footer { text-align: center; margin-top: 30px; font-size: 0.8em; color: #888; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>{{ $json.episode_title }}</h1>\n        </div>\n\n        <div class=\"section\">\n            <h2>Guest Information</h2>\n            <p><strong>Name:</strong> {{ $('🧩 1_Webhook Submit CV').item.json.body.guest_name }}</p>\n            <p><strong>Email:</strong> {{ $('🧩 1_Webhook Submit CV').item.json.body.guest_email }}</p>\n            <p><strong>Profile:</strong> {{ $json.professional_bio }}</p>\n            <p><strong>Role:</strong> {{ $('🧩 1_Webhook Submit CV').item.json.body.job_description }}</p>\n        </div>\n\n        <div class=\"section\">\n            <h2>Podcast Prep Content</h2>\n            <div class=\"subsection\">\n                <h3>Guest Bio</h3>\n                <p class=\"bio-text\">{{ $json.guest_bio }}</p>\n            </div>\n            <div class=\"subsection\">\n                <h3>Talking Points</h3>\n                <ul>\n                    {{ $json.talking_points.split(';').map(p => `<li>${p.trim()}</li>`).join('') }}\n                </ul>\n            </div>\n            <div class=\"subsection\">\n                <h3>Interview Questions</h3>\n                <ul>\n                    <li>{{ $json.question_1 }}</li>\n                    <li>{{ $json.question_2 }}</li>\n                    <li>{{ $json.question_3 }}</li>\n                </ul>\n            </div>\n            <div class=\"subsection\">\n                <h3>Key Insights & Stories</h3>\n                <p><strong>Win Story 1:</strong> {{ $json.win_story_1 }}</p>\n                <p><strong>Win Story 2:</strong> {{ $json.win_story_2 }}</p>\n                <p><strong>Industry Insight:</strong> {{ $json.industry_insight }}</p>\n            </div>\n        </div>\n\n        <div class=\"joke-section\">\n            <h3>Random Chuck Norris Fact</h3>\n            <p id=\"chuck-norris-joke\" class=\"joke-text\">Loading...</p>\n        </div>\n\n        <div class=\"footer\">\n            <p>Generated by AI | Processed on {{ $now }}</p>\n        </div>\n    </div>\n    \n    <script>\n        document.addEventListener('DOMContentLoaded', () => {\n            fetch('https://api.chucknorris.io/jokes/random')\n                .then(response => response.json())\n                .then(data => {\n                    const jokeElement = document.getElementById('chuck-norris-joke');\n                    jokeElement.textContent = data.value;\n                })\n                .catch(error => {\n                    const jokeElement = document.getElementById('chuck-norris-joke');\n                    jokeElement.textContent = 'Chuck Norris roundhouse kicked the joke API. Joke unavailable.';\n                    console.error('Error fetching Chuck Norris joke:', error);\n                });\n        });\n    </script>\n</body>\n</html>\n",
+        "options": {}
+      },
+      "id": "d8a723ea-0b8f-468b-bfe2-7edfb4f63612",
+      "name": "🎪 Oracle HTML Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v3.1:671b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        976
+      ],
+      "id": "c8b2aa9c-060e-4eaf-a76e-66423683ea3c",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "RB9frpZqmT4XuBhR",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.aiPrompt }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1520,
+        752
+      ],
+      "id": "e16bcc61-a48f-4cc8-b848-66dc4d55e483",
+      "name": "🤖 AI Content Generator"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get values from previous node\nconst webhook = $('🧩 1_Webhook Submit CV').first().json.body;\n\nconst guestName =  $('🧩 1_Webhook Submit CV').first().json.query.guest_name|| \"Unknown Guest\";\nconst guestEmail = $('🧩 1_Webhook Submit CV').first().json.query.guest_email || \"Unknown Email\";\nconst profileText = $('🧩 1_Webhook Submit CV').first().json.query.profile_text || \"No profile provided\";\nconst jobDescription = $('🧩 1_Webhook Submit CV').first().json.query.job_description || \"No job description provided\";\n\n// Build the AI prompt\nconst aiPrompt = `\nCreate a professional podcast interview prep package for:\n\nName: $input.first().json.body.guest_name\n\nEmail: $input.first().json.body.guest_email\n\nProfile: $input.first().json.body.profile_text\n\nRole: $input.first().json.job_description\n\nGenerate a GENERAL PROFESSIONAL interview package focusing on:\n- Professional background and expertise\n- Career achievements and milestones\n- Industry insights and experience\n- Personal brand and unique value proposition\n- also re-make anf summarize into a sensible version of the role into a $input.first().json.body.prompt_type job descrpition suitable for $input.first().json.body.profile_text \n\nReturn ONLY valid JSON in this exact format:\n{\n  \"episode_title\": \"Professional focused title\",\n  \"guest_bio\": \"Professional biography highlighting expertise\",\n  \"win_story_1\": \"Key professional achievement\",\n  \"win_story_2\": \"Career milestone or success story\", \n  \"industry_insight\": \"Valuable industry perspective or trend\",\n  \"question_1\": \"Professional background and expertise question\",\n  \"question_2\": \"Career journey and achievements question\",\n  \"question_3\": \"Industry insights and future outlook question\",\n  \"professional_bio\": \"Extended professional summary with key accomplishments\",\n  \"talking_points\": \"Key discussion points for professional interview\"\n}\n\nFocus on professional expertise, career achievements, industry knowledge, and personal brand.\n\nHere is the Job Description:\n---START JOB DESCRIPTION---\n$input.first().json.job_description\n---END JOB DESCRIPTION---\n\nHere is the Candidate's CV:\n---START CANDIDATE CV---\n$input.first().json.profile_text\n---END CANDIDATE CV---\n`;\n\nreturn {\n  json: {\n    aiPrompt\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        864
+      ],
+      "id": "3d41f240-7e26-4eb1-9231-a8d7fe8acb9b",
+      "name": "🔧  Build Single aiPrompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawOutput = items[0].json.output;\n\n// This regular expression finds the content inside a markdown code block.\nconst jsonContentMatch = rawOutput.match(/```json\\n(.*)\\n```/s);\n\n// Check if a match was found and the content is not empty.\nif (jsonContentMatch && jsonContentMatch[1]) {\n  try {\n    // Parse the extracted string into a JavaScript object.\n    const parsedJson = JSON.parse(jsonContentMatch[1]);\n    // Return the parsed JSON object for the next node to use.\n    return [{ json: parsedJson }];\n  } catch (error) {\n    // If parsing fails, return an error message to the next node.\n    console.error(\"Failed to parse JSON content from AI response:\", error);\n    return [{ json: { error: \"Failed to parse JSON content from AI response\", originalContent: rawOutput } }];\n  }\n} else {\n  // If the markdown fences are not found, the entire output might be the JSON string.\n  try {\n    const parsedJson = JSON.parse(rawOutput);\n    return [{ json: parsedJson }];\n  } catch (error) {\n    console.error(\"JSON content not found or is invalid:\", error);\n    return [{ json: { error: \"JSON content not found or is invalid\", originalContent: rawOutput } }];\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1872,
+        864
+      ],
+      "id": "33915fc9-93d0-4bca-86ec-daec8d211cf6",
+      "name": "🔧 extract pure JSON"
+    },
+    {
+      "parameters": {
+        "jsCode": "const token = $json[\"query\"][\"token\"];\n\n// For now, accept only one test token\nif (token === \"abc123\") {\n  return [{\n    invalid: false,\n    candidate: {\n      email: \"candidate@example.com\",\n      name: \"Test Candidate\"\n    }\n  }];\n} else {\n  return [{ invalid: true }];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        1280
+      ],
+      "id": "a954de1c-590a-4573-834c-b3a20fb0005c",
+      "name": "🔧 Validate Email Token"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9a024eda-2cb2-4c92-a832-affdf3c8df42",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "=Accept",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        1280
+      ],
+      "id": "6a7e553b-b09d-48db-a4dd-943daf1060f3",
+      "name": "IF (Token Valid?)"
+    },
+    {
+      "parameters": {
+        "path": "msg",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        400,
+        1280
+      ],
+      "id": "af7fb5a9-a867-4149-8add-69fc223ef847",
+      "name": "🎪 2_accept Email Webhook",
+      "webhookId": "032dcc15-0436-4ed7-ad29-4f88882cf8ce"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "confirm-email",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        400,
+        1600
+      ],
+      "id": "33b07e6b-8d13-495c-9c80-3ae05205b736",
+      "name": "🧩 3_confirm-email Webhook → n8n",
+      "webhookId": "5e822acb-b96e-4346-bb26-f80b851a007b",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "candidate_workflows",
+          "mode": "list",
+          "cachedResultName": "candidate_workflows"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "guid": "={{ $('🎪 2_accept Email Webhook').item.json.query.id }}",
+            "status": "={{ $('🎪 2_accept Email Webhook').item.json.query.status }}",
+            "notes": "=Token Valid: {{ $json.invalid }} | WF Name: {{ $workflow.name }} | EXEC ID: {{ $execution.id }}",
+            "candidate_email": "={{ $('🎪 2_accept Email Webhook').item.json.query.candidate_email }}",
+            "job_role_ref": "={{ $('🎪 2_accept Email Webhook').item.json.query.job_role_ref }}",
+            "last_updated": "={{ $now }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "guid",
+              "displayName": "guid",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "candidate_email",
+              "displayName": "candidate_email",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_role_ref",
+              "displayName": "job_role_ref",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_updated",
+              "displayName": "last_updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        624,
+        1600
+      ],
+      "id": "a64c16a4-8e5b-403d-a6f0-dfa562532b2b",
+      "name": "🧩 Insert GUID+Email",
+      "credentials": {
+        "postgres": {
+          "id": "zOjedULw0f9i40OB",
+          "name": "Postgres > helix_db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<!DOCTYPE html>\n<html>\n  <body style=\"font-family: Arial; text-align: center; padding: 50px;\">\n    <h2>Redirecting you to Calendly...</h2>\n    <p>If it doesn’t open automatically, <a href=\"https://calendly.com/YOUR_USERNAME\">click here</a>.</p>\n  </body>\n</html>\n",
+        "options": {
+          "responseCode": 302
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        1824
+      ],
+      "id": "1f117651-57e5-448f-a9d1-b0ec71eb689c",
+      "name": "🧩 YES Respond to Webhook",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "oracle-podcast_v6",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2d4d7e58-624a-4344-a7a9-bd85b7d56f92",
+      "name": "🧩 1_Webhook Submit CV",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        400,
+        864
+      ],
+      "webhookId": "bd5676e0-da22-4892-995f-09136b0f9988"
+    },
+    {
+      "parameters": {
+        "fromEmail": "a@k.com",
+        "toEmail": "a@k.com",
+        "subject": "Helix PodCat Script",
+        "html": "=<!DOCTYPE html>\n<html>\n<head>\n    <title>{{ $json.episode_title }}</title>\n    <style>\n        body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; margin: 0; padding: 20px; }\n        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }\n        .header { background: #007bff; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }\n        .header h1 { margin: 0; font-size: 1.5em; }\n        .section { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }\n        .section h2 { margin-top: 0; color: #007bff; border-bottom: 2px solid #eee; padding-bottom: 5px; }\n        .subsection { margin-top: 15px; }\n        .subsection h3 { color: #555; margin-bottom: 5px; }\n        .list-item { background: #e9ecef; padding: 8px; border-radius: 5px; margin-bottom: 5px; }\n        .bio-text { font-style: italic; color: #666; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>{{ $json.episode_title }}</h1>\n\n\n<p>Thank you for your interest! Please follow these two simple steps to book your interview:</p>\n<p>1. Copy your unique tracking code: <strong>---GUID---{{$json.query.guid}}---GUID---</strong></p>\n<p>2. <a href=\"https://calendly.com/thesapspecialist\">Click here to open Calendly</a>, select a time, and paste the code into the 'notes' or 'comments' field.</p>\n\n\n\n        </div>\n\n        <div class=\"section\">\n            <h2>Guest Information</h2>\n            <p><strong>Name:</strong> {{ $('🔧 Prompt Builder').item.json.body.guest_name }}</p>\n            <p><strong>Email:</strong> {{ $('🔧 Prompt Builder').item.json.body.guest_email }}</p>\n            <p><strong>Profile:</strong> {{ $json.professional_bio }}</p>\n            <p><strong>Role:</strong> {{ $('🔧 Prompt Builder').item.json.body.job_description }}</p>\n        </div>\n\n        <div class=\"section\">\n            <h2>Podcast Prep Content</h2>\n            <div class=\"subsection\">\n                <h3>Guest Bio</h3>\n                <p class=\"bio-text\">{{ $json.guest_bio }}</p>\n            </div>\n            <div class=\"subsection\">\n                <h3>Talking Points</h3>\n                <ul>\n                    {{ $json.talking_points.split(';').map(p => `<li>${p.trim()}</li>`).join('') }}\n                </ul>\n            </div>\n            <div class=\"subsection\">\n                <h3>Interview Questions</h3>\n                <ul>\n                    <li>{{ $json.question_1 }}</li>\n                    <li>{{ $json.question_2 }}</li>\n                    <li>{{ $json.question_3 }}</li>\n                </ul>\n            </div>\n            <div class=\"subsection\">\n                <h3>Key Insights & Stories</h3>\n                <p><strong>Win Story 1:</strong> {{ $json.win_story_1 }}</p>\n                <p><strong>Win Story 2:</strong> {{ $json.win_story_2 }}</p>\n                <p><strong>Industry Insight:</strong> {{ $json.industry_insight }}</p>\n            </div>\n        </div>\n\n        <div style=\"text-align: center; margin-top: 20px; font-size: 0.8em; color: #888;\">\n            <p>Generated by AI | Processed on {{ $now }}</p>\n        </div>\n    </div>\n\n\n\n\n\n\n\n\n<a href=\"https://YOUR_NGROK_URL/accept?guid={{$json.guid}}&job_role={{$json.job_description}}&email={{$json.guest_email}}&status=yes\" ...>\n\n\n<a href=\"https://YOUR_NGROK_URL/accept?guid={{$json.guid}}&job_role={{$json.job_description}}&email={{$json.guest_email}}&status=no\" ...>\n\n<div class=\"section\" style=\"text-align: center; margin-top: 30px;\">\n  <p>Please confirm your interview availability:</p>\n  <a href=\"https://your-n8n-webhook/accept?candidate_id=123&date=2025-09-15\" \n     style=\"padding: 12px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 6px; margin-right: 10px;\">\n     ✅ Accept (15 Sept)\n  </a>\n  <a href=\"https://your-n8n-webhook/accept?candidate_id=123&date=2025-09-18\" \n     style=\"padding: 12px 20px; background: #17a2b8; color: white; text-decoration: none; border-radius: 6px; margin-right: 10px;\">\n     ✅ Accept (18 Sept)\n  </a>\n  <a href=\"https://your-n8n-webhook/reject?candidate_id=123\" \n     style=\"padding: 12px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 6px;\">\n     ❌ Decline\n  </a>\n</div>\n\n<style>\n  .page-break { page-break-before: always; }\n</style>\n\n<!-- Page 1: Intro -->\n<h1>Interview Preparation: Angelo Kenel</h1>\n<p>Introduction, summary, job role, etc.</p>\n\n<div class=\"page-break\"></div>\n\n<!-- Page 2: Content -->\n<h2>Interview Content</h2>\n<p>Guest Bio, Talking Points, Questions, Stories…</p>\n\n<div class=\"page-break\"></div>\n\n<!-- Page 3: Contact & Tips -->\n<h2>Contact Details</h2>\n<p>Email, LinkedIn, Notes, Industry Insights, Useful Links.</p>\n\n\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1520,
+        1184
+      ],
+      "id": "fa540ce6-e6c4-4af9-a588-d41d5eb3cfef",
+      "name": "🧩 Send Email°2 | Calender-Link",
+      "webhookId": "6140ab46-935e-4aa1-a781-69cf388ff977",
+      "credentials": {
+        "smtp": {
+          "id": "GRLvyfYxoPNBgpcm",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "a@k.com",
+        "toEmail": "a@k.com",
+        "subject": "Helix NO-GO Script",
+        "html": "=<!DOCTYPE html>\n<html>\n  <body style=\"font-family: Arial; text-align: center; padding: 50px;\">\n    <h2>❌ This link is invalid or expired.</h2>\n    <p>Please contact the recruiter for a fresh invitation.</p>\n  </body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1296,
+        1376
+      ],
+      "id": "64a0f517-5ba7-404c-9c70-4ca761282af4",
+      "name": "🧩 Send Email°2 | Declined Offer | 👎️ Response: Invalid Link",
+      "webhookId": "6140ab46-935e-4aa1-a781-69cf388ff977",
+      "credentials": {
+        "smtp": {
+          "id": "GRLvyfYxoPNBgpcm",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1296,
+        1184
+      ],
+      "id": "9ad1ef72-3d43-45bb-acf8-a7f0bd461722",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "function uuidv4() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nreturn [\n  {\n    json: {\n      guid: uuidv4()\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        864
+      ],
+      "id": "8f45ffc3-ec37-42f8-955d-e1b6d8d6c11f",
+      "name": "🔧 return uuidv4 | MsgId"
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@example.com",
+        "toEmail": "={{ $json.candidate_email }}",
+        "subject": "=Helix PodCat Script {{ $('🔧 return uuidv4 | MsgId').item.json.guid }}",
+        "html": "=<!DOCTYPE html>\n<html>\n<head>\n<title>\n{{ $('🔧 extract pure JSON').item.json.episode_title }} with {{ $('🧩 1_Webhook Submit CV').item.json.body.body.guest_name }}\n</title>\nBook your Personal Interview using Code:\n{{ $('🔧 return uuidv4 | MsgId').item.json.guid }}\n<title>\nAct Quickly!\n</title>\n\nSubmit and accept, and you’ll receive an email with simple instructions to book your interview at a time that suits your busy schedule. You can cancel the meeting at any time, but we found your profile very interesting and believe we can secure you an interview if you respond immediately. \n\nThese opportunities move fast and are rare for someone with your qualifications!\n\n<style>\n        body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; margin: 0; padding: 20px; }\n        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }\n        .header { background: #007bff; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }\n        .header h1 { margin: 0; font-size: 1.5em; }\n        .section { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }\n        .section h2 { margin-top: 0; color: #007bff; border-bottom: 2px solid #eee; padding-bottom: 5px; }\n        .subsection { margin-top: 15px; }\n        .subsection h3 { color: #555; margin-bottom: 5px; }\n        .list-item { background: #e9ecef; padding: 8px; border-radius: 5px; margin-bottom: 5px; }\n        .bio-text { font-style: italic; color: #666; }  \n</style>\n</head>\n<body>\n<div class=\"section\" style=\"text-align: center; margin-top: 30px;\">\n<p>\nPlease confirm your interview availability:\n</p> \n<a href=\"https://0a9b23187227.ngrok-free.app/webhook/msg?id={{$('🔧 return uuidv4 | MsgId').item.json.guid}}&job_role_ref={{$('🔍 Data Processor').item.json.job_description}}&status=Accept&candidate_email={{ $json.candidate_email }}\" \nstyle=\"padding: 12px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 6px; margin-right: 10px;\">\n✅ Accept\n</a>  \n<a href=\"https://0a9b23187227.ngrok-free.app/webhook/msg?id={{$('🔧 return uuidv4 | MsgId').item.json.guid}}&job_role_ref={{$('🔍 Data Processor').item.json.job_description}}&status=Decline&candidate_email={{ $json.candidate_email }}\"    \nstyle=\"padding: 12px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 6px;\">\n👉️ Decline\n</a>\n<style>\n  .page-break { page-break-before: always; }\n</style>\n<!-- Page 1: Intro -->\n<h1>\nInterview Preparation: Angelo Kenel\n</h1>\n</div>\n<div class=\"container\">\n<div class=\"header\">\n<h1>{{ $('🔧 extract pure JSON').item.json.episode_title }} | {{ $('🧩 1_Webhook Submit CV').item.json.body.body.guest_name }} \n</h1>\n<p>\nThank you for your interest! \nPlease follow these two simple steps to book your interview and fill this role before others:\n</p>\n<p>\n1. Simply copy & paste your unique INTERVIEW Code into the 'calendly notes' before submitting your booking request:  \n</p>\n<strong>\n{{ $json.guid }} \n</strong>\n</p>\n</p>\n<strong>\n<p>\n2. Click Calendly link to book your interview\n<a href=\"https://calendly.com/thesapspecialist\">\n</a>\n, select a date and time, and paste your personal INTERVIEW Code into the 'calendly notes section' field.\n</p>\n</strong>\n</div>\n<div class=\"section\">\n<h2>\nGuest Information\n</h2>        \n<p>\n<strong>\nName:\n</strong> \n{{ $json.candidate_name }}\n</p>\n<p>\n<strong>\nEmail:\n</strong> \n{{ $json.candidate_email }}\n</p>\n<p>\n<strong>\nProfile:\n</strong>\n{{ $json.guest_bio }}\n</p>\n<p>\n<strong>\nRole:\n</strong> \n{{ $json.oracle_prompt_prompt_id }}\n</p>\n</div>\n<div class=\"section\">\n<h2>\nPodcast Prep Content\n</h2>\n<div class=\"subsection\">\n<h3>\nGuest Bio\n</h3>\n<p class=\"bio-text\">\n{{ $('🔧 extract pure JSON').item.json.guest_bio }} \n</p>          \n</div>  \n<div class=\"subsection\">              \n<h3>\nTalking Points\n</h3>\n<ul>\n{{$('🔧 extract pure JSON').item.json.talking_points.split(';').map(p => `<li>${p.trim()}</li>`).join('') }}\n</ul>\n</div>       \n<div class=\"subsection\">\n<h3>\nInterview Questions\n</h3>\n<ul>\n<li>\n{{ $('🔧 extract pure JSON').item.json.question_1 }} \n</li>                  \n<li>{{ $('🔧 extract pure JSON').item.json.question_2 }}{ \n</li>\n<li>{{ $('🔧 extract pure JSON').item.json.question_3 }} \n</li>\n</ul>\n</div>\n<div class=\"subsection\">              \n<h3>\nKey Insights & Stories\n</h3>\n<p>\n<strong>\nWin Story 1:\n</strong>\n{{ $('🔧 extract pure JSON').item.json.win_story_1 }}  \n</p>\n<p>\n<strong>Win Story 2:\n</strong>{{ $('🔧 extract pure JSON').item.json.win_story_1 }}  \n</p>             \n<p>\n<strong>\nIndustry Insight:\n</strong> \n{{ $('🔧 extract pure JSON').item.json.industry_insight }} \n</p>       \n</div>     \n</div>     \n<div style=\"text-align: center; margin-top: 20px; font-size: 0.8em; color: #888;\">        \n<p>\nGenerated by Ollama Turbo LLM AI | Processed on {{ $now }}\n</p>    \n</div>  \n</div>\n<a href=\"https://0a9b23187227.ngrok-free.app/webhook/msg?id={{$('🔧 return uuidv4 | MsgId').item.json.guid}}&job_role_ref={{$('🔍 Data Processor').item.json.job_description}}&status=Accept&candidate_email={{ $json.candidate_email }}\"  ...>\n<div class=\"section\" style=\"text-align: center; margin-top: 30px;\">\n<p>\nPlease confirm your interview availability:\n</p>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2768,
+        864
+      ],
+      "id": "a5d63754-bf12-41b5-8c59-42796a0982c0",
+      "name": "🧩 Send Email°1 | Offer Script",
+      "webhookId": "6140ab46-935e-4aa1-a781-69cf388ff977",
+      "credentials": {
+        "smtp": {
+          "id": "GRLvyfYxoPNBgpcm",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "candidate_workflows",
+          "mode": "list",
+          "cachedResultName": "candidate_workflows"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "guid": "={{ $json.guid }}",
+            "output_fields_industry_insight": "={{ $('🎪 Oracle HTML Response').item.json.industry_insight }}",
+            "output_fields_talking_points": "={{ $('🎪 Oracle HTML Response').item.json.talking_points }}",
+            "output_fields_professional_bio": "={{ $('🎪 Oracle HTML Response').item.json.professional_bio }}",
+            "output_fields_question_3": "={{ $('🎪 Oracle HTML Response').item.json.question_3 }}",
+            "output_fields_question_2": "={{ $('🎪 Oracle HTML Response').item.json.question_2 }}",
+            "output_fields_question_1": "={{ $('🎪 Oracle HTML Response').item.json.question_1 }}",
+            "output_fields_win_story_2": "={{ $('🎪 Oracle HTML Response').item.json.win_story_2 }}",
+            "output_fields_win_story_1": "={{ $('🎪 Oracle HTML Response').item.json.win_story_1 }}",
+            "output_fields_guest_bio": "={{ $('🎪 Oracle HTML Response').item.json.guest_bio }}",
+            "output_fields_episode_title": "={{ $('🎪 Oracle HTML Response').item.json.episode_title }}",
+            "processing_id": "={{ $('🔧 Prompt Builder').item.json.processing_id }}",
+            "webhookuri": "={{ $('🔧 Prompt Builder').item.json.webhookUrl }}",
+            "oracle_prompt_prompt_type": "={{ $('🔧 Prompt Builder').item.json.body.prompt_type }}",
+            "oracle_prompt_description": "={{ $('🔧 Prompt Builder').item.json.oracle_prompt.description }}",
+            "executionmode": "={{ $('🔧 Prompt Builder').item.json.executionMode }}",
+            "job_description": "={{ $('🔧 Prompt Builder').item.json.job_description }}",
+            "profile_text": "={{ $('🔧 Prompt Builder').item.json.profile_text }}",
+            "oracle_prompt_tier": "={{ $('🔧 Prompt Builder').item.json.oracle_prompt.tier }}",
+            "oracle_prompt_prompt_template": "={{ $('🔧 Prompt Builder').item.json.oracle_prompt.prompt_template }}",
+            "episode_title": "={{ $('🎪 Oracle HTML Response').item.json.episode_title }}",
+            "talking_points": "{{ $('🔧 Prompt Builder').item.json.profile_text }}",
+            "professional_bio": "{{ $('🔧 Prompt Builder').item.json.profile_text }}",
+            "guest_bio": "{{ $('🔧 Prompt Builder').item.json.profile_text }}",
+            "last_updated": "2025-09-11T22:30:49",
+            "status": "myStatus",
+            "candidate_name": "{{ $('🔧 Prompt Builder').item.json.profile_text }}",
+            "job_role_ref": "my-job_role_ref ",
+            "candidate_email": "angel.kenel@gmail.com",
+            "oracle_prompt_prompt_id": "my-oracle_prompt_prompt_id",
+            "oracle_prompt_name": "my-oracle_prompt_name "
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "guid",
+              "displayName": "guid",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "candidate_email",
+              "displayName": "candidate_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_role_ref",
+              "displayName": "job_role_ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "candidate_name",
+              "displayName": "candidate_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_updated",
+              "displayName": "last_updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "guest_bio",
+              "displayName": "guest_bio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "professional_bio",
+              "displayName": "professional_bio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "talking_points",
+              "displayName": "talking_points",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "episode_title",
+              "displayName": "episode_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "profile_text",
+              "displayName": "profile_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_description",
+              "displayName": "job_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "webhookuri",
+              "displayName": "webhookuri",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "executionmode",
+              "displayName": "executionmode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "processing_id",
+              "displayName": "processing_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "oracle_prompt_prompt_type",
+              "displayName": "oracle_prompt_prompt_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "oracle_prompt_prompt_id",
+              "displayName": "oracle_prompt_prompt_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "oracle_prompt_name",
+              "displayName": "oracle_prompt_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "oracle_prompt_description",
+              "displayName": "oracle_prompt_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "oracle_prompt_tier",
+              "displayName": "oracle_prompt_tier",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "oracle_prompt_prompt_template",
+              "displayName": "oracle_prompt_prompt_template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output_fields_episode_title",
+              "displayName": "output_fields_episode_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output_fields_guest_bio",
+              "displayName": "output_fields_guest_bio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output_fields_win_story_1",
+              "displayName": "output_fields_win_story_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output_fields_win_story_2",
+              "displayName": "output_fields_win_story_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output_fields_question_1",
+              "displayName": "output_fields_question_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output_fields_question_2",
+              "displayName": "output_fields_question_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output_fields_question_3",
+              "displayName": "output_fields_question_3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output_fields_professional_bio",
+              "displayName": "output_fields_professional_bio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output_fields_talking_points",
+              "displayName": "output_fields_talking_points",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output_fields_industry_insight",
+              "displayName": "output_fields_industry_insight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2544,
+        864
+      ],
+      "id": "1378e64e-a603-4982-8963-3006335d0622",
+      "name": "☘️ Insert > helix_db",
+      "credentials": {
+        "postgres": {
+          "id": "zOjedULw0f9i40OB",
+          "name": "Postgres > helix_db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "candidate_workflows",
+          "mode": "list",
+          "cachedResultName": "candidate_workflows"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "job_role_ref": "={{ $('🎪 2_accept Email Webhook').item.json.query.job_role_ref }}",
+            "candidate_email": "={{ $('🎪 2_accept Email Webhook').item.json.query.candidate_email }}",
+            "guid": "={{ $('🎪 2_accept Email Webhook').item.json.query.id }}",
+            "status": "={{ $('🎪 2_accept Email Webhook').item.json.query.status }}",
+            "last_updated": "2025-09-12T00:44:43"
+          },
+          "matchingColumns": [
+            "guid"
+          ],
+          "schema": [
+            {
+              "id": "guid",
+              "displayName": "guid",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "candidate_email",
+              "displayName": "candidate_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "job_role_ref",
+              "displayName": "job_role_ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "candidate_name",
+              "displayName": "candidate_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "last_updated",
+              "displayName": "last_updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "guest_bio",
+              "displayName": "guest_bio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "professional_bio",
+              "displayName": "professional_bio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "talking_points",
+              "displayName": "talking_points",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "episode_title",
+              "displayName": "episode_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "profile_text",
+              "displayName": "profile_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "job_description",
+              "displayName": "job_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "webhookuri",
+              "displayName": "webhookuri",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "executionmode",
+              "displayName": "executionmode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "processing_id",
+              "displayName": "processing_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "oracle_prompt_prompt_type",
+              "displayName": "oracle_prompt_prompt_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "oracle_prompt_prompt_id",
+              "displayName": "oracle_prompt_prompt_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "oracle_prompt_name",
+              "displayName": "oracle_prompt_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "oracle_prompt_description",
+              "displayName": "oracle_prompt_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "oracle_prompt_tier",
+              "displayName": "oracle_prompt_tier",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "oracle_prompt_prompt_template",
+              "displayName": "oracle_prompt_prompt_template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "output_fields_episode_title",
+              "displayName": "output_fields_episode_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "output_fields_guest_bio",
+              "displayName": "output_fields_guest_bio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "output_fields_win_story_1",
+              "displayName": "output_fields_win_story_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "output_fields_win_story_2",
+              "displayName": "output_fields_win_story_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "output_fields_question_1",
+              "displayName": "output_fields_question_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "output_fields_question_2",
+              "displayName": "output_fields_question_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "output_fields_question_3",
+              "displayName": "output_fields_question_3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "output_fields_professional_bio",
+              "displayName": "output_fields_professional_bio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "output_fields_talking_points",
+              "displayName": "output_fields_talking_points",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "output_fields_industry_insight",
+              "displayName": "output_fields_industry_insight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        1280
+      ],
+      "id": "3a1f132a-f9e7-48f8-b946-894414d5b140",
+      "name": "🧩 Insert GUID+Email or update",
+      "credentials": {
+        "postgres": {
+          "id": "zOjedULw0f9i40OB",
+          "name": "Postgres > helix_db"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "🔍 Data Processor": {
+      "main": [
+        [
+          {
+            "node": "🔮 Oracle Prompt Loader",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔮 Oracle Prompt Loader": {
+      "main": [
+        [
+          {
+            "node": "🔧 Prompt Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 Prompt Builder": {
+      "main": [
+        [
+          {
+            "node": "🔧  Build Single aiPrompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🤖 AI Content Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 AI Content Generator": {
+      "main": [
+        [
+          {
+            "node": "🔧 extract pure JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎪 Oracle HTML Response": {
+      "main": [
+        [
+          {
+            "node": "🔧 return uuidv4 | MsgId",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧  Build Single aiPrompt": {
+      "main": [
+        [
+          {
+            "node": "🤖 AI Content Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 extract pure JSON": {
+      "main": [
+        [
+          {
+            "node": "🎪 Oracle HTML Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 Validate Email Token": {
+      "main": [
+        [
+          {
+            "node": "🧩 Insert GUID+Email or update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Token Valid?)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🧩 Send Email°2 | Declined Offer | 👎️ Response: Invalid Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎪 2_accept Email Webhook": {
+      "main": [
+        [
+          {
+            "node": "🔧 Validate Email Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧩 Insert GUID+Email": {
+      "main": [
+        []
+      ]
+    },
+    "🧩 1_Webhook Submit CV": {
+      "main": [
+        [
+          {
+            "node": "🔍 Data Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧩 Send Email°2 | Calender-Link": {
+      "main": [
+        []
+      ]
+    },
+    "🔧 return uuidv4 | MsgId": {
+      "main": [
+        [
+          {
+            "node": "☘️ Insert > helix_db",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "☘️ Insert > helix_db": {
+      "main": [
+        [
+          {
+            "node": "🧩 Send Email°1 | Offer Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧩 3_confirm-email Webhook → n8n": {
+      "main": [
+        [
+          {
+            "node": "🧩 Insert GUID+Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧩 Insert GUID+Email or update": {
+      "main": [
+        [
+          {
+            "node": "IF (Token Valid?)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "🧩 Send Email°2 | Calender-Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "34cc05f3-d63c-4487-af0a-7a9823e59f3f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "63f725b2eedb343af11a518bea15a3ad45564cfb1d4bb8e65c0084f4f07b09e3"
+  },
+  "id": "2GOZBZOLGFrNlhLi",
+  "tags": [
+    {
+      "createdAt": "2025-09-11T18:32:02.422Z",
+      "updatedAt": "2025-09-11T18:32:02.422Z",
+      "id": "dSHtrgYad89z8iYP",
+      "name": "DEMO"
+    }
+  ]
+}

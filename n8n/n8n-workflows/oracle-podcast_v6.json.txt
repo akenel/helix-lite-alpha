@@ -1,0 +1,531 @@
+{
+  "name": "oracle-podcast_v6",
+  "nodes": [
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "processing_id",
+              "value": "=podcast_{{ DateTime.now().toUnixInteger() }}_{{ $json.body.guest_name.toLowerCase().replace(/\\s+/g, '_') }}"
+            },
+            {
+              "name": "guest_name",
+              "value": "={{ $json.body.guest_name }}"
+            },
+            {
+              "name": "guest_email",
+              "value": "={{ $json.body.guest_email }}"
+            },
+            {
+              "name": "profile_text",
+              "value": "={{ $json.body.profile_text }}"
+            },
+            {
+              "name": "job_description",
+              "value": "={{ $json.body.job_description || 'Professional' }}"
+            },
+            {
+              "name": "prompt_type",
+              "value": "={{ $json.body.prompt_type || 'general' }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ DateTime.now().toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "857591fb-b63c-468a-a4f2-7c23bc8dde06",
+      "name": "🔍 Data Processor",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        624,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "filePath": "=/podcast-studio/oracle-prompts/{{ $json.prompt_type }}.json",
+        "dataPropertyName": "=data from name : {{ $json.body.guest_name }} with Email: {{ $json.body.guest_email }} and CV profile profile_text : {{ $json.body.profile_text }} and the Role job_description\" JD Job Description: {{ $json.body.job_description }}"
+      },
+      "id": "943dd14e-fc11-4c91-9d84-e21da08d3f63",
+      "name": "🔮 Oracle Prompt Loader",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        848,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Load and process oracle prompt\nconst inputData = $input.first().json;\n\n// FIX: This is the corrected way to access the binary data.\n// $input.first() gets the single item from the Oracle Prompt Loader node.\n// .binary then gives you access to the binary data object.\nconst binaryData = $input.first().binary;\nconsole.log(binaryData);\n\ntry {\n  // Read the oracle prompt file.\n  // The key for the binary file is often the filename. We can get it dynamically.\n  const binaryKey = Object.keys(binaryData)[0];\n  const oracleFile = binaryData[binaryKey];\n\n  // This line is now fixed because 'oracleFile.data' correctly points to the binary data.\n  const oracleContent = Buffer.from(oracleFile.data, 'base64').toString('utf8');\n  const oraclePrompt = JSON.parse(oracleContent);\n  \n  // Build the prompt based on oracle template\n  let finalPrompt;\n  \n  if (inputData.prompt_type === 'corporate_climber') {\n    finalPrompt = `Create a professional podcast interview prep package for:\n\nName: ${inputData.guest_name}\nEmail: ${inputData.guest_email}\nProfile: ${inputData.profile_text}\nRole: ${inputData.job_description}\n\nGenerate a CORPORATE CLIMBER style interview package focusing on:\n- Executive leadership development\n- Strategic decision-making and business impact\n- Team management and organizational growth\n- Boardroom presence and corporate excellence\n\nReturn ONLY valid JSON in this exact format:\n{\n  \"episode_title\": \"Executive leadership focused title\",\n  \"guest_bio\": \"Professional biography emphasizing leadership credentials\",\n  \"leadership_story_1\": \"Key leadership achievement with business impact\",\n  \"leadership_story_2\": \"Strategic decision that drove results\",\n  \"team_impact_story\": \"Team development or organizational transformation\",\n  \"question_1\": \"Strategic leadership and vision question\",\n  \"question_2\": \"Team management and people development question\",\n  \"question_3\": \"Business strategy and market positioning question\",\n  \"professional_bio\": \"Extended executive summary with quantified achievements\",\n  \"talking_points\": \"Key discussion points for executive-level interview\"\n}\n\nFocus on leadership impact, strategic thinking, business results, and executive presence.`;\n  } else {\n    // Default prompt\n    finalPrompt = `Create a professional podcast episode package for:\n\nName: ${inputData.guest_name}\nProfile: ${inputData.profile_text}\nRole: ${inputData.job_description}\n\nReturn valid JSON only:\n{\n\"episode_title\": \"title\",\n\"guest_bio\": \"bio\",\n\"industry_focus\": \"industry\",\n\"win_story_1\": \"story 1\",\n\"win_story_2\": \"story 2\",\n\"question_1\": \"question?\",\n\"question_2\": \"question?\", \n\"question_3\": \"question?\",\n\"key_insights\": [\"insight1\", \"insight2\", \"insight3\"],\n\"episode_summary\": \"summary\"\n}`;\n  }\n  \n  // Return combined data\n  return [{\n    json: {\n      ...inputData,\n      oracle_prompt: oraclePrompt,\n      final_prompt: finalPrompt,\n      oracle_loaded: true\n    }\n  }];\n  \n} catch (error) {\n  // Fallback if oracle file not found or parsing failed\n  const fallbackPrompt = `Create a professional podcast episode package for:\n\nName: ${inputData.guest_name}\nProfile: ${inputData.profile_text}\nRole: ${inputData.job_description}\n\nReturn valid JSON only:\n{\n\"episode_title\": \"title\",\n\"guest_bio\": \"bio\",\n\"industry_focus\": \"industry\",\n\"win_story_1\": \"story 1\",\n\"win_story_2\": \"story 2\",\n\"question_1\": \"question?\",\n\"question_2\": \"question?\", \n\"question_3\": \"question?\",\n\"key_insights\": [\"insight1\", \"insight2\", \"insight3\"],\n\"episode_summary\": \"summary\"\n}`;\n  \n  return [{\n    json: {\n      ...inputData,\n      final_prompt: fallbackPrompt,\n      oracle_loaded: false,\n      oracle_error: error.message\n    }\n  }];\n}"
+      },
+      "id": "2f755be3-823e-45f3-9eac-53dcc471aba9",
+      "name": "🔧 Prompt Builder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<!DOCTYPE html>\n<html>\n<head>\n    <title>{{ $json.episode_title }}</title>\n    <style>\n        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');\n        body { font-family: 'Inter', sans-serif; background: #f0f2f5; color: #333; margin: 0; padding: 20px; }\n        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }\n        .header { background: linear-gradient(45deg, #007bff, #0056b3); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center; }\n        .header h1 { margin: 0; font-size: 2em; font-weight: 700; }\n        .section { margin-top: 25px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }\n        .section h2 { margin-top: 0; color: #007bff; border-bottom: 2px solid #e9ecef; padding-bottom: 8px; }\n        .subsection { margin-top: 20px; }\n        .subsection h3 { color: #555; margin-bottom: 8px; }\n        .list-item { background: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 8px; }\n        .bio-text { font-style: italic; color: #495057; line-height: 1.6; }\n        .joke-section { text-align: center; margin-top: 30px; padding: 20px; border: 1px dashed #ced4da; border-radius: 8px; background: #fff8e1; }\n        .joke-text { font-style: italic; font-weight: 600; color: #333; }\n        .footer { text-align: center; margin-top: 30px; font-size: 0.8em; color: #888; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>{{ $json.episode_title }}</h1>\n        </div>\n\n        <div class=\"section\">\n            <h2>Guest Information</h2>\n            <p><strong>Name:</strong> {{ $('🎯 1_Webhook Submit CV').item.json.body.guest_name }}</p>\n            <p><strong>Email:</strong> {{ $('🎯 1_Webhook Submit CV').item.json.body.guest_email }}</p>\n            <p><strong>Profile:</strong> {{ $json.professional_bio }}</p>\n            <p><strong>Role:</strong> {{ $('🎯 1_Webhook Submit CV').item.json.body.job_description }}</p>\n        </div>\n\n        <div class=\"section\">\n            <h2>Podcast Prep Content</h2>\n            <div class=\"subsection\">\n                <h3>Guest Bio</h3>\n                <p class=\"bio-text\">{{ $json.guest_bio }}</p>\n            </div>\n            <div class=\"subsection\">\n                <h3>Talking Points</h3>\n                <ul>\n                    {{ $json.talking_points.split(';').map(p => `<li>${p.trim()}</li>`).join('') }}\n                </ul>\n            </div>\n            <div class=\"subsection\">\n                <h3>Interview Questions</h3>\n                <ul>\n                    <li>{{ $json.question_1 }}</li>\n                    <li>{{ $json.question_2 }}</li>\n                    <li>{{ $json.question_3 }}</li>\n                </ul>\n            </div>\n            <div class=\"subsection\">\n                <h3>Key Insights & Stories</h3>\n                <p><strong>Win Story 1:</strong> {{ $json.win_story_1 }}</p>\n                <p><strong>Win Story 2:</strong> {{ $json.win_story_2 }}</p>\n                <p><strong>Industry Insight:</strong> {{ $json.industry_insight }}</p>\n            </div>\n        </div>\n\n        <div class=\"joke-section\">\n            <h3>Random Chuck Norris Fact</h3>\n            <p id=\"chuck-norris-joke\" class=\"joke-text\">Loading...</p>\n        </div>\n\n        <div class=\"footer\">\n            <p>Generated by AI | Processed on {{ $now }}</p>\n        </div>\n    </div>\n    \n    <script>\n        document.addEventListener('DOMContentLoaded', () => {\n            fetch('https://api.chucknorris.io/jokes/random')\n                .then(response => response.json())\n                .then(data => {\n                    const jokeElement = document.getElementById('chuck-norris-joke');\n                    jokeElement.textContent = data.value;\n                })\n                .catch(error => {\n                    const jokeElement = document.getElementById('chuck-norris-joke');\n                    jokeElement.textContent = 'Chuck Norris roundhouse kicked the joke API. Joke unavailable.';\n                    console.error('Error fetching Chuck Norris joke:', error);\n                });\n        });\n    </script>\n</body>\n</html>\n",
+        "options": {}
+      },
+      "id": "d8a723ea-0b8f-468b-bfe2-7edfb4f63612",
+      "name": "🎪 Oracle HTML Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v3.1:671b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        976
+      ],
+      "id": "c8b2aa9c-060e-4eaf-a76e-66423683ea3c",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "RB9frpZqmT4XuBhR",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.aiPrompt }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1520,
+        752
+      ],
+      "id": "e16bcc61-a48f-4cc8-b848-66dc4d55e483",
+      "name": "🤖 AI Content Generator"
+    },
+    {
+      "parameters": {
+        "fromEmail": "a@k.com",
+        "toEmail": "a@k.com",
+        "subject": "Helix PodCat Script",
+        "html": "=<!DOCTYPE html>\n<html>\n<head>\n    <title>{{ $json.episode_title }}</title>\n    <style>\n        body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; margin: 0; padding: 20px; }\n        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }\n        .header { background: #007bff; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }\n        .header h1 { margin: 0; font-size: 1.5em; }\n        .section { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }\n        .section h2 { margin-top: 0; color: #007bff; border-bottom: 2px solid #eee; padding-bottom: 5px; }\n        .subsection { margin-top: 15px; }\n        .subsection h3 { color: #555; margin-bottom: 5px; }\n        .list-item { background: #e9ecef; padding: 8px; border-radius: 5px; margin-bottom: 5px; }\n        .bio-text { font-style: italic; color: #666; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>{{ $json.episode_title }}</h1>\n        </div>\n\n        <div class=\"section\">\n            <h2>Guest Information</h2>\n            <p><strong>Name:</strong> {{ $('🔧 Prompt Builder').item.json.body.guest_name }}</p>\n            <p><strong>Email:</strong> {{ $('🔧 Prompt Builder').item.json.body.guest_email }}</p>\n            <p><strong>Profile:</strong> {{ $json.professional_bio }}</p>\n            <p><strong>Role:</strong> {{ $('🔧 Prompt Builder').item.json.body.job_description }}</p>\n        </div>\n\n        <div class=\"section\">\n            <h2>Podcast Prep Content</h2>\n            <div class=\"subsection\">\n                <h3>Guest Bio</h3>\n                <p class=\"bio-text\">{{ $json.guest_bio }}</p>\n            </div>\n            <div class=\"subsection\">\n                <h3>Talking Points</h3>\n                <ul>\n                    {{ $json.talking_points.split(';').map(p => `<li>${p.trim()}</li>`).join('') }}\n                </ul>\n            </div>\n            <div class=\"subsection\">\n                <h3>Interview Questions</h3>\n                <ul>\n                    <li>{{ $json.question_1 }}</li>\n                    <li>{{ $json.question_2 }}</li>\n                    <li>{{ $json.question_3 }}</li>\n                </ul>\n            </div>\n            <div class=\"subsection\">\n                <h3>Key Insights & Stories</h3>\n                <p><strong>Win Story 1:</strong> {{ $json.win_story_1 }}</p>\n                <p><strong>Win Story 2:</strong> {{ $json.win_story_2 }}</p>\n                <p><strong>Industry Insight:</strong> {{ $json.industry_insight }}</p>\n            </div>\n        </div>\n\n        <div style=\"text-align: center; margin-top: 20px; font-size: 0.8em; color: #888;\">\n            <p>Generated by AI | Processed on {{ $now }}</p>\n        </div>\n    </div>\n\n\n<div class=\"section\" style=\"text-align: center; margin-top: 30px;\">\n  <p>Please confirm your interview availability:</p>\n  <a href=\"https://your-n8n-webhook/accept?candidate_id=123&date=2025-09-15\" \n     style=\"padding: 12px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 6px; margin-right: 10px;\">\n     ✅ Accept (15 Sept)\n  </a>\n  <a href=\"https://your-n8n-webhook/accept?candidate_id=123&date=2025-09-18\" \n     style=\"padding: 12px 20px; background: #17a2b8; color: white; text-decoration: none; border-radius: 6px; margin-right: 10px;\">\n     ✅ Accept (18 Sept)\n  </a>\n  <a href=\"https://your-n8n-webhook/reject?candidate_id=123\" \n     style=\"padding: 12px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 6px;\">\n     ❌ Decline\n  </a>\n</div>\n\n<style>\n  .page-break { page-break-before: always; }\n</style>\n\n<!-- Page 1: Intro -->\n<h1>Interview Preparation: Angelo Kenel</h1>\n<p>Introduction, summary, job role, etc.</p>\n\n<div class=\"page-break\"></div>\n\n<!-- Page 2: Content -->\n<h2>Interview Content</h2>\n<p>Guest Bio, Talking Points, Questions, Stories…</p>\n\n<div class=\"page-break\"></div>\n\n<!-- Page 3: Contact & Tips -->\n<h2>Contact Details</h2>\n<p>Email, LinkedIn, Notes, Industry Insights, Useful Links.</p>\n\n\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2320,
+        752
+      ],
+      "id": "f3de6468-1d31-49a1-ba40-72cdf215241b",
+      "name": "Send email",
+      "webhookId": "6140ab46-935e-4aa1-a781-69cf388ff977",
+      "credentials": {
+        "smtp": {
+          "id": "GRLvyfYxoPNBgpcm",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get values from previous node\nconst webhook = $('🎯 1_Webhook Submit CV').first().json.body;\n\nconst guestName = webhook.guest_name || \"Unknown Guest\";\nconst guestEmail = webhook.guest_email || \"Unknown Email\";\nconst profileText = webhook.profile_text || \"No profile provided\";\nconst jobDescription = webhook.job_description || \"No job description provided\";\n\n// Build the AI prompt\nconst aiPrompt = `\nCreate a professional podcast interview prep package for:\n\nName: ${guestName}\n\nEmail: ${guestEmail}\n\nProfile: ${profileText}\n\nRole: ${jobDescription}\n\nGenerate a GENERAL PROFESSIONAL interview package focusing on:\n- Professional background and expertise\n- Career achievements and milestones\n- Industry insights and experience\n- Personal brand and unique value proposition\n- also re-make anf summarize into a sensible version of the role into a $input.first().json.body.prompt_type job descrpition suitable for $input.first().json.body.profile_text \n\nReturn ONLY valid JSON in this exact format:\n{\n  \"episode_title\": \"Professional focused title\",\n  \"guest_bio\": \"Professional biography highlighting expertise\",\n  \"win_story_1\": \"Key professional achievement\",\n  \"win_story_2\": \"Career milestone or success story\", \n  \"industry_insight\": \"Valuable industry perspective or trend\",\n  \"question_1\": \"Professional background and expertise question\",\n  \"question_2\": \"Career journey and achievements question\",\n  \"question_3\": \"Industry insights and future outlook question\",\n  \"professional_bio\": \"Extended professional summary with key accomplishments\",\n  \"talking_points\": \"Key discussion points for professional interview\"\n}\n\nFocus on professional expertise, career achievements, industry knowledge, and personal brand.\n\nHere is the Job Description:\n---START JOB DESCRIPTION---\n${jobDescription}\n---END JOB DESCRIPTION---\n\nHere is the Candidate's CV:\n---START CANDIDATE CV---\n${profileText}\n---END CANDIDATE CV---\n`;\n\nreturn {\n  json: {\n    aiPrompt\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        752
+      ],
+      "id": "3d41f240-7e26-4eb1-9231-a8d7fe8acb9b",
+      "name": "🔧  Build Single aiPrompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawOutput = items[0].json.output;\n\n// This regular expression finds the content inside a markdown code block.\nconst jsonContentMatch = rawOutput.match(/```json\\n(.*)\\n```/s);\n\n// Check if a match was found and the content is not empty.\nif (jsonContentMatch && jsonContentMatch[1]) {\n  try {\n    // Parse the extracted string into a JavaScript object.\n    const parsedJson = JSON.parse(jsonContentMatch[1]);\n    // Return the parsed JSON object for the next node to use.\n    return [{ json: parsedJson }];\n  } catch (error) {\n    // If parsing fails, return an error message to the next node.\n    console.error(\"Failed to parse JSON content from AI response:\", error);\n    return [{ json: { error: \"Failed to parse JSON content from AI response\", originalContent: rawOutput } }];\n  }\n} else {\n  // If the markdown fences are not found, the entire output might be the JSON string.\n  try {\n    const parsedJson = JSON.parse(rawOutput);\n    return [{ json: parsedJson }];\n  } catch (error) {\n    console.error(\"JSON content not found or is invalid:\", error);\n    return [{ json: { error: \"JSON content not found or is invalid\", originalContent: rawOutput } }];\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1872,
+        752
+      ],
+      "id": "33915fc9-93d0-4bca-86ec-daec8d211cf6",
+      "name": "🔧 extract pure JSON"
+    },
+    {
+      "parameters": {
+        "jsCode": "const token = $json[\"query\"][\"token\"];\n\n// For now, accept only one test token\nif (token === \"abc123\") {\n  return [{\n    invalid: false,\n    candidate: {\n      email: \"candidate@example.com\",\n      name: \"Test Candidate\"\n    }\n  }];\n} else {\n  return [{ invalid: true }];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        1184
+      ],
+      "id": "a954de1c-590a-4573-834c-b3a20fb0005c",
+      "name": "🔧 Validate Email Token"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9a024eda-2cb2-4c92-a832-affdf3c8df42",
+              "leftValue": "invalid ",
+              "rightValue": "=false",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        848,
+        1184
+      ],
+      "id": "6a7e553b-b09d-48db-a4dd-943daf1060f3",
+      "name": "IF (Token Valid?)"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<!DOCTYPE html>\n<html>\n  <body style=\"font-family: Arial; text-align: center; padding: 50px;\">\n    <h2>❌ This link is invalid or expired.</h2>\n    <p>Please contact the recruiter for a fresh invitation.</p>\n  </body>\n</html>\n",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1072,
+        1088
+      ],
+      "id": "14814dd5-b405-40f7-a774-a688e704dc56",
+      "name": "🧩 Response: Invalid Link"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<!DOCTYPE html>\n<html>\n  <body style=\"font-family: Arial; text-align: center; padding: 50px;\">\n    <h2>Redirecting you to Calendly...</h2>\n    <p>If it doesn’t open automatically, <a href=\"https://calendly.com/YOUR_USERNAME\">click here</a>.</p>\n  </body>\n</html>\n",
+        "options": {
+          "responseCode": 302
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1072,
+        1280
+      ],
+      "id": "1f117651-57e5-448f-a9d1-b0ec71eb689c",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "oracle-podcast_v6",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2d4d7e58-624a-4344-a7a9-bd85b7d56f92",
+      "name": "🎯 1_Webhook Submit CV",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        400,
+        752
+      ],
+      "webhookId": "bd5676e0-da22-4892-995f-09136b0f9988"
+    },
+    {
+      "parameters": {
+        "path": "accept",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        400,
+        1184
+      ],
+      "id": "af7fb5a9-a867-4149-8add-69fc223ef847",
+      "name": "🎪 2_accept Email Webhook",
+      "webhookId": "032dcc15-0436-4ed7-ad29-4f88882cf8ce"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "confirm-email",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        400,
+        1504
+      ],
+      "id": "33b07e6b-8d13-495c-9c80-3ae05205b736",
+      "name": "🧩 3_confirm-email Webhook → n8n",
+      "webhookId": "5e822acb-b96e-4346-bb26-f80b851a007b"
+    }
+  ],
+  "pinData": {
+    "🔧 Prompt Builder": [
+      {
+        "json": {
+          "headers": {
+            "host": "localhost:5678",
+            "user-agent": "curl/7.88.1",
+            "accept": "*/*",
+            "content-type": "application/json",
+            "content-length": "7477"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "guest_name": "Angelo Kenel",
+            "guest_email": "theSAPspecialist@gmail.com",
+            "profile_text": "Angelo Kenel | Senior Application Integration Developer.md\n1 of 4\nhttps://dillinger.io/factory/fetch_html\nAngelo Kenel\nMattenweg 5, Beckenried, Nidwalden CH-6375 | +41 79 828 2841 |\ntheSAPspecialist@gmail.com | LinkedIn Proﬁle\nSenior Application Integration Developer\nSAP & Azure Integration Engineer\nHighly accomplished Integration Engineer with over 20 years of hands-on\nexperience in designing, developing, and implementing complex integration\nsolutions. Proven expertise in establishing robust data ﬂows to optimize the\ninteraction between enterprise applications, including SAP S/4HANA, SAP PO,\nand external systems like Salesforce. Adept at leveraging modern iPaaS solutions\nlike Microsoft Azure (Logic Apps, API Management) to build scalable and secure\nintegration platforms. Dual Swiss-Canadian citizen with strong English and\nGerman language skills.\nPROFESSIONAL EXPERIENCE\nSenior Integration Developer | Swiss Life, Zürich CH\nJuly 2019 – January 2024 (Full-Time Permanent Employee)\n• Led the design and development of end-to-end integration solutions,\nestablishing data ﬂows between SAP PO 7.5 and external non-SAP systems\nvia SOAP, REST, and sFTP adapters.\n• Developed and implemented a robust and scalable solution for secure\ndocument transfer, utilizing Azure Logic Apps and Azure MsGraph to\nreplace legacy processes and support digital transformation initiatives.\n• Conﬁgured and managed Azure API Management (APIM) for the\nimport/export of REST APIs and WSDLs, enabling secure HTTP Request\n05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md\n2 of 4\nhttps://dillinger.io/factory/fetch_html\ntriggers with certiﬁcate-based and SAP OAuth 2.0 connections.\n• Designed and implemented a streamlined architecture to bypass\ntraditional middleware, using ABAP Web Services and SOAManager to\ndeliver payloads directly to Azure Logic Apps as the primary iPaaS.\n• Collaborated with cross-functional teams to ensure seamless\nintegration and provide expert technical support.\n• Troubleshot and resolved complex integration issues, ensuring optimal\nsystem performance and reliability for ﬁnance and HR teams.\nIntegration Engineer | Deutsche Börse Group, Luxembourg LU\nJanuary 2019 – July 2019 (Contracting Services)\n• Developed new integration processes ( iFlows ) using Eclipse NWDS on\nPO 7.4, employing XML-SOAP and JSON-REST adapters to integrate SAP\nCRM with in-house banking applications.\n• Collaborated with Networking and Basis teams to secure HTTP\nconnections and developed Service Interface ABAP proxies for end-to-end\nRESTful Web Service calls.\nIntegration Project Manager | CMA-CGM, Marseille FR\nSeptember 2018 – October 2018 (Contracting Services)\n• Spearheaded a highly successful proof-of-concept and UAT\nimplementation for intermodal address enrichment, leveraging RESTful\nweb service APIs to integrate Geocoding Info System data into SAP TM.\n• Delivered two complex Technical Booking interfaces using internal\nplatforms and the SAP PO RESTful web service API Adapter, integrating\ndata into SAP TM via AIF & Event Management.\nSKILLS & EXPERTISE\nIntegration Technologies & APIs\n05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md\n3 of 4\nhttps://dillinger.io/factory/fetch_html\n• API Management Platforms: Azure API Management (APIM)\n• Integration Platforms (iPaaS): Azure Logic Apps, SAP Process\nOrchestration (PO/PI)\n• Integration Methodologies: RESTful Architecture, SOAP, JSON, XML,\nB2B & A2A\n• Security Protocols: OAuth 2.0, Certiﬁcates, SSL, sFTP, AS2\n• Middleware: SAP PI/PO, ABAP Web Services\nEnterprise Systems & Solutions\n• SAP: S/4HANA, ECC, BW, TM, PI/PO, HANA\n• Cloud: Microsoft Azure (Virtual Machines, ANF, Backup, ExpressRoute, Key\nVault, MsGraph)\n• Databases: SAP HANA\n• Other Systems: Experience integrating with Salesforce and other non-SAP\nsystems (via REST/SOAP).\nMethodology & Soft Skills\n• Problem-Solving: Proven ability to analyze complex integration challenges\nand propose eﬀective, simpliﬁed solutions (e.g., bypassing middleware).\n• Project Lifecycle Management: Full lifecycle experience including\nanalysis, design, development, testing, and monitoring.\n• Technical Leadership & Mentorship: Experienced in leading technical\nworkshops, discussions, and providing support.\n• Communication & Collaboration: Strong communication skills with both\ntechnical and non-technical stakeholders.\n• Methodology: Independent and structured way of working, analytical\nthinking.\nEDUCATION & CERTIFICATIONS\n• Application Consultant Certiﬁcation - ABAP Workbench for SAP System\n05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md\n4 of 4\nhttps://dillinger.io/factory/fetch_html\nR/3 Release 4.0 | SAP, Toronto CA (2000)\n• 3 Year Computer Systems Co-Op Diploma | Mohawk College, Hamilton\nCA (1985)\n05/09/2025, 14:56",
+            "job_description": "ERP_Consultant\n\nSkillfinder International logo\nSkillfinder International\nEnterprise Resources Planning Consultant \nZurich, Switzerland · 1 day ago · 23 applicants\n\nPromoted by hirer · Company review time is typically 1 week\nEnterprise Resources Planning Consultant\nSkillfinder International · Zurich, Switzerland (Hybrid)\nJob match is medium, review match details\nYour profile matches several of the required qualifications\n\nBETA\n\nIs this information helpful?\nMeet the hiring team\nSarah DG\nSarah DG\n2nd\nPrecision Hiring for Banking, Finance and Technology Leaders\nJob poster · 3 mutual connections\nAbout the job\n\nAbacus ERP Consultant (German Speaking)\n\n\n    Contract: 1 year+\n    On site working required: Zurich (1-2 days WFH after initial period)\n    Daily rate: 650 CHF - 750 CHF (possible flex)\n\n\nIntroduction\n\nJoin a leading Swiss technology and consulting firm at the forefront of digital transformation. With over a decade of experience, this company partners with clients across finance, insurance, healthcare, and public services to deliver innovative solutions in areas such as cloud, AI, low-code development, and blockchain. Headquartered in Switzerland, they pride themselves on a collaborative culture, strong values, and a commitment to shaping the future of secure and efficient business processes.\n\n\nPosition\n\nWe are looking for an experienced ERP Consultant – Abacus to provide long-term support to our team in the implementation and ongoing development of Abacus solutions.\n\n\nResponsibilities\n\n    Support our team with the ongoing Abacus implementation.\n    Further develop and adapt the Abacus software to meet customer needs.\n    Ensure functional and technical support throughout the entire project lifecycle.\n    Collaborate directly on-site at the office for the first four months, then partial remote work possible.\n    Provide consulting and training for internal and external stakeholders.\n\n\nYour Profile\n\n    Solid experience with Abacus ERP in implementation projects.\n    Strong knowledge of business and process analysis.\n    Independent, solution-oriented working style with strong team skills.\n    Willingness for intensive on-site collaboration.\n    Available immediately for a project duration of approx. 1 year, with possible extension.\n\n",
+            "prompt_type": "general"
+          },
+          "webhookUrl": "http://localhost:5678/webhook-test/oracle-podcast_v3",
+          "executionMode": "test",
+          "processing_id": "podcast_1757512545_angelo_kenel",
+          "guest_name": "Angelo Kenel",
+          "guest_email": "theSAPspecialist@gmail.com",
+          "profile_text": "Angelo Kenel | Senior Application Integration Developer.md\n1 of 4\nhttps://dillinger.io/factory/fetch_html\nAngelo Kenel\nMattenweg 5, Beckenried, Nidwalden CH-6375 | +41 79 828 2841 |\ntheSAPspecialist@gmail.com | LinkedIn Proﬁle\nSenior Application Integration Developer\nSAP & Azure Integration Engineer\nHighly accomplished Integration Engineer with over 20 years of hands-on\nexperience in designing, developing, and implementing complex integration\nsolutions. Proven expertise in establishing robust data ﬂows to optimize the\ninteraction between enterprise applications, including SAP S/4HANA, SAP PO,\nand external systems like Salesforce. Adept at leveraging modern iPaaS solutions\nlike Microsoft Azure (Logic Apps, API Management) to build scalable and secure\nintegration platforms. Dual Swiss-Canadian citizen with strong English and\nGerman language skills.\nPROFESSIONAL EXPERIENCE\nSenior Integration Developer | Swiss Life, Zürich CH\nJuly 2019 – January 2024 (Full-Time Permanent Employee)\n• Led the design and development of end-to-end integration solutions,\nestablishing data ﬂows between SAP PO 7.5 and external non-SAP systems\nvia SOAP, REST, and sFTP adapters.\n• Developed and implemented a robust and scalable solution for secure\ndocument transfer, utilizing Azure Logic Apps and Azure MsGraph to\nreplace legacy processes and support digital transformation initiatives.\n• Conﬁgured and managed Azure API Management (APIM) for the\nimport/export of REST APIs and WSDLs, enabling secure HTTP Request\n05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md\n2 of 4\nhttps://dillinger.io/factory/fetch_html\ntriggers with certiﬁcate-based and SAP OAuth 2.0 connections.\n• Designed and implemented a streamlined architecture to bypass\ntraditional middleware, using ABAP Web Services and SOAManager to\ndeliver payloads directly to Azure Logic Apps as the primary iPaaS.\n• Collaborated with cross-functional teams to ensure seamless\nintegration and provide expert technical support.\n• Troubleshot and resolved complex integration issues, ensuring optimal\nsystem performance and reliability for ﬁnance and HR teams.\nIntegration Engineer | Deutsche Börse Group, Luxembourg LU\nJanuary 2019 – July 2019 (Contracting Services)\n• Developed new integration processes ( iFlows ) using Eclipse NWDS on\nPO 7.4, employing XML-SOAP and JSON-REST adapters to integrate SAP\nCRM with in-house banking applications.\n• Collaborated with Networking and Basis teams to secure HTTP\nconnections and developed Service Interface ABAP proxies for end-to-end\nRESTful Web Service calls.\nIntegration Project Manager | CMA-CGM, Marseille FR\nSeptember 2018 – October 2018 (Contracting Services)\n• Spearheaded a highly successful proof-of-concept and UAT\nimplementation for intermodal address enrichment, leveraging RESTful\nweb service APIs to integrate Geocoding Info System data into SAP TM.\n• Delivered two complex Technical Booking interfaces using internal\nplatforms and the SAP PO RESTful web service API Adapter, integrating\ndata into SAP TM via AIF & Event Management.\nSKILLS & EXPERTISE\nIntegration Technologies & APIs\n05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md\n3 of 4\nhttps://dillinger.io/factory/fetch_html\n• API Management Platforms: Azure API Management (APIM)\n• Integration Platforms (iPaaS): Azure Logic Apps, SAP Process\nOrchestration (PO/PI)\n• Integration Methodologies: RESTful Architecture, SOAP, JSON, XML,\nB2B & A2A\n• Security Protocols: OAuth 2.0, Certiﬁcates, SSL, sFTP, AS2\n• Middleware: SAP PI/PO, ABAP Web Services\nEnterprise Systems & Solutions\n• SAP: S/4HANA, ECC, BW, TM, PI/PO, HANA\n• Cloud: Microsoft Azure (Virtual Machines, ANF, Backup, ExpressRoute, Key\nVault, MsGraph)\n• Databases: SAP HANA\n• Other Systems: Experience integrating with Salesforce and other non-SAP\nsystems (via REST/SOAP).\nMethodology & Soft Skills\n• Problem-Solving: Proven ability to analyze complex integration challenges\nand propose eﬀective, simpliﬁed solutions (e.g., bypassing middleware).\n• Project Lifecycle Management: Full lifecycle experience including\nanalysis, design, development, testing, and monitoring.\n• Technical Leadership & Mentorship: Experienced in leading technical\nworkshops, discussions, and providing support.\n• Communication & Collaboration: Strong communication skills with both\ntechnical and non-technical stakeholders.\n• Methodology: Independent and structured way of working, analytical\nthinking.\nEDUCATION & CERTIFICATIONS\n• Application Consultant Certiﬁcation - ABAP Workbench for SAP System\n05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md\n4 of 4\nhttps://dillinger.io/factory/fetch_html\nR/3 Release 4.0 | SAP, Toronto CA (2000)\n• 3 Year Computer Systems Co-Op Diploma | Mohawk College, Hamilton\nCA (1985)\n05/09/2025, 14:56",
+          "job_description": "ERP_Consultant\n\nSkillfinder International logo\nSkillfinder International\nEnterprise Resources Planning Consultant \nZurich, Switzerland · 1 day ago · 23 applicants\n\nPromoted by hirer · Company review time is typically 1 week\nEnterprise Resources Planning Consultant\nSkillfinder International · Zurich, Switzerland (Hybrid)\nJob match is medium, review match details\nYour profile matches several of the required qualifications\n\nBETA\n\nIs this information helpful?\nMeet the hiring team\nSarah DG\nSarah DG\n2nd\nPrecision Hiring for Banking, Finance and Technology Leaders\nJob poster · 3 mutual connections\nAbout the job\n\nAbacus ERP Consultant (German Speaking)\n\n\n    Contract: 1 year+\n    On site working required: Zurich (1-2 days WFH after initial period)\n    Daily rate: 650 CHF - 750 CHF (possible flex)\n\n\nIntroduction\n\nJoin a leading Swiss technology and consulting firm at the forefront of digital transformation. With over a decade of experience, this company partners with clients across finance, insurance, healthcare, and public services to deliver innovative solutions in areas such as cloud, AI, low-code development, and blockchain. Headquartered in Switzerland, they pride themselves on a collaborative culture, strong values, and a commitment to shaping the future of secure and efficient business processes.\n\n\nPosition\n\nWe are looking for an experienced ERP Consultant – Abacus to provide long-term support to our team in the implementation and ongoing development of Abacus solutions.\n\n\nResponsibilities\n\n    Support our team with the ongoing Abacus implementation.\n    Further develop and adapt the Abacus software to meet customer needs.\n    Ensure functional and technical support throughout the entire project lifecycle.\n    Collaborate directly on-site at the office for the first four months, then partial remote work possible.\n    Provide consulting and training for internal and external stakeholders.\n\n\nYour Profile\n\n    Solid experience with Abacus ERP in implementation projects.\n    Strong knowledge of business and process analysis.\n    Independent, solution-oriented working style with strong team skills.\n    Willingness for intensive on-site collaboration.\n    Available immediately for a project duration of approx. 1 year, with possible extension.\n\n",
+          "prompt_type": "general",
+          "timestamp": "2025-09-10T13:55:45.798Z",
+          "oracle_prompt": {
+            "prompt_id": "general",
+            "name": "🎯 General Professional",
+            "description": "General professional interview package for any industry",
+            "tier": "espresso",
+            "prompt_template": "Create a professional podcast interview prep package for:\n\nName: {{ $json.body.name }}\nEmail: {{ $json.body.email }}\nProfile: {{ $json.body.profile_text }}\nRole: {{ $json.body.job_description }}\n\nGenerate a GENERAL PROFESSIONAL interview package focusing on:\n- Professional background and expertise\n- Career achievements and milestones\n- Industry insights and experience\n- Personal brand and unique value proposition\n\nReturn ONLY valid JSON in this exact format:\n{{\n  \"episode_title\": \"Professional focused title\",\n  \"guest_bio\": \"Professional biography highlighting expertise\",\n  \"win_story_1\": \"Key professional achievement\",\n  \"win_story_2\": \"Career milestone or success story\", \n  \"industry_insight\": \"Valuable industry perspective or trend\",\n  \"question_1\": \"Professional background and expertise question\",\n  \"question_2\": \"Career journey and achievements question\",\n  \"question_3\": \"Industry insights and future outlook question\",\n  \"professional_bio\": \"Extended professional summary with key accomplishments\",\n  \"talking_points\": \"Key discussion points for professional interview\"\n}}\n\nFocus on professional expertise, career achievements, industry knowledge, and personal brand.",
+            "variables": [
+              "name",
+              "email",
+              "profile_text",
+              "job_description"
+            ],
+            "output_fields": [
+              "episode_title",
+              "guest_bio",
+              "win_story_1",
+              "win_story_2",
+              "industry_insight",
+              "question_1",
+              "question_2",
+              "question_3",
+              "professional_bio",
+              "talking_points"
+            ]
+          },
+          "final_prompt": "Create a professional podcast episode package for:\n\nName: Angelo Kenel\nProfile: Angelo Kenel | Senior Application Integration Developer.md\n1 of 4\nhttps://dillinger.io/factory/fetch_html\nAngelo Kenel\nMattenweg 5, Beckenried, Nidwalden CH-6375 | +41 79 828 2841 |\ntheSAPspecialist@gmail.com | LinkedIn Proﬁle\nSenior Application Integration Developer\nSAP & Azure Integration Engineer\nHighly accomplished Integration Engineer with over 20 years of hands-on\nexperience in designing, developing, and implementing complex integration\nsolutions. Proven expertise in establishing robust data ﬂows to optimize the\ninteraction between enterprise applications, including SAP S/4HANA, SAP PO,\nand external systems like Salesforce. Adept at leveraging modern iPaaS solutions\nlike Microsoft Azure (Logic Apps, API Management) to build scalable and secure\nintegration platforms. Dual Swiss-Canadian citizen with strong English and\nGerman language skills.\nPROFESSIONAL EXPERIENCE\nSenior Integration Developer | Swiss Life, Zürich CH\nJuly 2019 – January 2024 (Full-Time Permanent Employee)\n• Led the design and development of end-to-end integration solutions,\nestablishing data ﬂows between SAP PO 7.5 and external non-SAP systems\nvia SOAP, REST, and sFTP adapters.\n• Developed and implemented a robust and scalable solution for secure\ndocument transfer, utilizing Azure Logic Apps and Azure MsGraph to\nreplace legacy processes and support digital transformation initiatives.\n• Conﬁgured and managed Azure API Management (APIM) for the\nimport/export of REST APIs and WSDLs, enabling secure HTTP Request\n05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md\n2 of 4\nhttps://dillinger.io/factory/fetch_html\ntriggers with certiﬁcate-based and SAP OAuth 2.0 connections.\n• Designed and implemented a streamlined architecture to bypass\ntraditional middleware, using ABAP Web Services and SOAManager to\ndeliver payloads directly to Azure Logic Apps as the primary iPaaS.\n• Collaborated with cross-functional teams to ensure seamless\nintegration and provide expert technical support.\n• Troubleshot and resolved complex integration issues, ensuring optimal\nsystem performance and reliability for ﬁnance and HR teams.\nIntegration Engineer | Deutsche Börse Group, Luxembourg LU\nJanuary 2019 – July 2019 (Contracting Services)\n• Developed new integration processes ( iFlows ) using Eclipse NWDS on\nPO 7.4, employing XML-SOAP and JSON-REST adapters to integrate SAP\nCRM with in-house banking applications.\n• Collaborated with Networking and Basis teams to secure HTTP\nconnections and developed Service Interface ABAP proxies for end-to-end\nRESTful Web Service calls.\nIntegration Project Manager | CMA-CGM, Marseille FR\nSeptember 2018 – October 2018 (Contracting Services)\n• Spearheaded a highly successful proof-of-concept and UAT\nimplementation for intermodal address enrichment, leveraging RESTful\nweb service APIs to integrate Geocoding Info System data into SAP TM.\n• Delivered two complex Technical Booking interfaces using internal\nplatforms and the SAP PO RESTful web service API Adapter, integrating\ndata into SAP TM via AIF & Event Management.\nSKILLS & EXPERTISE\nIntegration Technologies & APIs\n05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md\n3 of 4\nhttps://dillinger.io/factory/fetch_html\n• API Management Platforms: Azure API Management (APIM)\n• Integration Platforms (iPaaS): Azure Logic Apps, SAP Process\nOrchestration (PO/PI)\n• Integration Methodologies: RESTful Architecture, SOAP, JSON, XML,\nB2B & A2A\n• Security Protocols: OAuth 2.0, Certiﬁcates, SSL, sFTP, AS2\n• Middleware: SAP PI/PO, ABAP Web Services\nEnterprise Systems & Solutions\n• SAP: S/4HANA, ECC, BW, TM, PI/PO, HANA\n• Cloud: Microsoft Azure (Virtual Machines, ANF, Backup, ExpressRoute, Key\nVault, MsGraph)\n• Databases: SAP HANA\n• Other Systems: Experience integrating with Salesforce and other non-SAP\nsystems (via REST/SOAP).\nMethodology & Soft Skills\n• Problem-Solving: Proven ability to analyze complex integration challenges\nand propose eﬀective, simpliﬁed solutions (e.g., bypassing middleware).\n• Project Lifecycle Management: Full lifecycle experience including\nanalysis, design, development, testing, and monitoring.\n• Technical Leadership & Mentorship: Experienced in leading technical\nworkshops, discussions, and providing support.\n• Communication & Collaboration: Strong communication skills with both\ntechnical and non-technical stakeholders.\n• Methodology: Independent and structured way of working, analytical\nthinking.\nEDUCATION & CERTIFICATIONS\n• Application Consultant Certiﬁcation - ABAP Workbench for SAP System\n05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md\n4 of 4\nhttps://dillinger.io/factory/fetch_html\nR/3 Release 4.0 | SAP, Toronto CA (2000)\n• 3 Year Computer Systems Co-Op Diploma | Mohawk College, Hamilton\nCA (1985)\n05/09/2025, 14:56\nRole: ERP_Consultant\n\nSkillfinder International logo\nSkillfinder International\nEnterprise Resources Planning Consultant \nZurich, Switzerland · 1 day ago · 23 applicants\n\nPromoted by hirer · Company review time is typically 1 week\nEnterprise Resources Planning Consultant\nSkillfinder International · Zurich, Switzerland (Hybrid)\nJob match is medium, review match details\nYour profile matches several of the required qualifications\n\nBETA\n\nIs this information helpful?\nMeet the hiring team\nSarah DG\nSarah DG\n2nd\nPrecision Hiring for Banking, Finance and Technology Leaders\nJob poster · 3 mutual connections\nAbout the job\n\nAbacus ERP Consultant (German Speaking)\n\n\n    Contract: 1 year+\n    On site working required: Zurich (1-2 days WFH after initial period)\n    Daily rate: 650 CHF - 750 CHF (possible flex)\n\n\nIntroduction\n\nJoin a leading Swiss technology and consulting firm at the forefront of digital transformation. With over a decade of experience, this company partners with clients across finance, insurance, healthcare, and public services to deliver innovative solutions in areas such as cloud, AI, low-code development, and blockchain. Headquartered in Switzerland, they pride themselves on a collaborative culture, strong values, and a commitment to shaping the future of secure and efficient business processes.\n\n\nPosition\n\nWe are looking for an experienced ERP Consultant – Abacus to provide long-term support to our team in the implementation and ongoing development of Abacus solutions.\n\n\nResponsibilities\n\n    Support our team with the ongoing Abacus implementation.\n    Further develop and adapt the Abacus software to meet customer needs.\n    Ensure functional and technical support throughout the entire project lifecycle.\n    Collaborate directly on-site at the office for the first four months, then partial remote work possible.\n    Provide consulting and training for internal and external stakeholders.\n\n\nYour Profile\n\n    Solid experience with Abacus ERP in implementation projects.\n    Strong knowledge of business and process analysis.\n    Independent, solution-oriented working style with strong team skills.\n    Willingness for intensive on-site collaboration.\n    Available immediately for a project duration of approx. 1 year, with possible extension.\n\n\n\nReturn valid JSON only:\n{\n\"episode_title\": \"title\",\n\"guest_bio\": \"bio\",\n\"industry_focus\": \"industry\",\n\"win_story_1\": \"story 1\",\n\"win_story_2\": \"story 2\",\n\"question_1\": \"question?\",\n\"question_2\": \"question?\", \n\"question_3\": \"question?\",\n\"key_insights\": [\"insight1\", \"insight2\", \"insight3\"],\n\"episode_summary\": \"summary\"\n}",
+          "oracle_loaded": true
+        }
+      }
+    ]
+  },
+  "connections": {
+    "🔍 Data Processor": {
+      "main": [
+        [
+          {
+            "node": "🔮 Oracle Prompt Loader",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔮 Oracle Prompt Loader": {
+      "main": [
+        [
+          {
+            "node": "🔧 Prompt Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 Prompt Builder": {
+      "main": [
+        [
+          {
+            "node": "🔧  Build Single aiPrompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🤖 AI Content Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 AI Content Generator": {
+      "main": [
+        [
+          {
+            "node": "🔧 extract pure JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎪 Oracle HTML Response": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        []
+      ]
+    },
+    "🔧  Build Single aiPrompt": {
+      "main": [
+        [
+          {
+            "node": "🤖 AI Content Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 extract pure JSON": {
+      "main": [
+        [
+          {
+            "node": "🎪 Oracle HTML Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 Validate Email Token": {
+      "main": [
+        [
+          {
+            "node": "IF (Token Valid?)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Token Valid?)": {
+      "main": [
+        [
+          {
+            "node": "🧩 Response: Invalid Link",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎯 1_Webhook Submit CV": {
+      "main": [
+        [
+          {
+            "node": "🔍 Data Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎪 2_accept Email Webhook": {
+      "main": [
+        [
+          {
+            "node": "🔧 Validate Email Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "aecd3741-3228-47b7-9144-0fa55d5cfe19",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "63f725b2eedb343af11a518bea15a3ad45564cfb1d4bb8e65c0084f4f07b09e3"
+  },
+  "id": "2GOZBZOLGFrNlhLi",
+  "tags": [
+    {
+      "createdAt": "2025-09-09T17:16:33.683Z",
+      "updatedAt": "2025-09-09T17:16:33.683Z",
+      "id": "bXz3jgwOSlsYaLSO",
+      "name": "PoC"
+    }
+  ]
+}

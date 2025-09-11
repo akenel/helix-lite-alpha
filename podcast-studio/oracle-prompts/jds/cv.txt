@@ -1,6 +1,6 @@
 Angelo Kenel | Senior Application Integration Developer.md
 1 of 4
-https://dillinger.io/factory/fetch_html
+
 Angelo Kenel
 Mattenweg 5, Beckenried, Nidwalden CH-6375 | +41 79 828 2841 |
 theSAPspecialist@gmail.com | LinkedIn Proﬁle
@@ -27,7 +27,7 @@ replace legacy processes and support digital transformation initiatives.
 import/export of REST APIs and WSDLs, enabling secure HTTP Request
 05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md
 2 of 4
-https://dillinger.io/factory/fetch_html
+
 triggers with certiﬁcate-based and SAP OAuth 2.0 connections.
 • Designed and implemented a streamlined architecture to bypass
 traditional middleware, using ABAP Web Services and SOAManager to
@@ -56,7 +56,7 @@ SKILLS & EXPERTISE
 Integration Technologies & APIs
 05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md
 3 of 4
-https://dillinger.io/factory/fetch_html
+
 • API Management Platforms: Azure API Management (APIM)
 • Integration Platforms (iPaaS): Azure Logic Apps, SAP Process
 Orchestration (PO/PI)
@@ -86,7 +86,7 @@ EDUCATION & CERTIFICATIONS
 • Application Consultant Certiﬁcation - ABAP Workbench for SAP System
 05/09/2025, 14:56Angelo Kenel | Senior Application Integration Developer.md
 4 of 4
-https://dillinger.io/factory/fetch_html
+
 R/3 Release 4.0 | SAP, Toronto CA (2000)
 • 3 Year Computer Systems Co-Op Diploma | Mohawk College, Hamilton
 CA (1985)
