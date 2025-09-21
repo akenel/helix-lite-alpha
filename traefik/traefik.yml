@@ -1,0 +1,31 @@
+tls:
+# /home/angel/repos/helix-lite-alpha/traefik/certs/helix-local.crt
+  certificates:
+    - certFile: "etc/traefik/certs/helix-local.crt"
+      keyFile: "etc/traefik/certs/helix-local.key"
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: ":443"
+  sftp-tcp:
+    address: ":2222"
+
+api:
+  dashboard: true
+  insecure: true # keep for dev, disable later
+
+log:
+  level: DEBUG   # 🔎 turn on DEBUG to see provider/file loading
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic/
+    watch: true

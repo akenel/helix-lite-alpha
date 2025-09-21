@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎙️ Oracle Podcast Wizard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-r from-indigo-600 to-purple-700 min-h-screen text-white">
+  <div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-3xl font-bold text-center mb-8">🎪 Oracle Podcast Creator</h1>
+
+    <!-- Environment toggle -->
+    <div class="flex justify-center mb-6">
+      <label class="mr-4">🌱
+        <select id="envSelect" class="text-black p-1 rounded">
+          <option value="http://localhost:5678/webhook-test/oracle-podcast_v3">Dev / Local</option>
+          <option value="https://2a2642ee6876.ngrok.io/webhook-test/oracle-podcast_v3">Ngrok / Public</option>
+        </select>
+      </label>
+    </div>
+
+    <form id="podcastForm" class="space-y-4">
+      <input name="name" placeholder="👤 Guest Name" class="w-full p-2 rounded text-black" required>
+      <input name="email" type="email" placeholder="📧 Email" class="w-full p-2 rounded text-black" required>
+      <input name="job_role" placeholder="💼 Job Role" class="w-full p-2 rounded text-black">
+
+      <textarea name="job_description" rows="4"
+        placeholder="📝 Job Description or Paste Text"
+        class="w-full p-2 rounded text-black"></textarea>
+
+      <input id="fileInput" type="file" accept=".pdf,.doc,.docx,.txt"
+             class="block w-full text-sm text-gray-200 file:mr-4 file:py-2 file:px-4
+             file:rounded file:border-0 file:text-sm file:font-semibold
+             file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"/>
+
+      <button class="bg-yellow-400 text-black font-bold px-4 py-2 rounded w-full hover:bg-yellow-300">
+        🚀 Send to n8n
+      </button>
+    </form>
+
+    <div id="result" class="mt-6 text-center"></div>
+  </div>
+
+  <script>
+    document.getElementById('podcastForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const envUrl = document.getElementById('envSelect').value;
+      const formData = new FormData(e.target);
+      let textFromFile = '';
+
+      const file = document.getElementById('fileInput').files[0];
+      if (file) {
+        // Simple text read; for PDF/docx you could use a library like pdf.js or Mammoth
+        textFromFile = await file.text();
+      }
+
+      const payload = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        job_role: formData.get('job_role'),
+        job_description: formData.get('job_description') + '\n' + textFromFile,
+        prompt_type: 'general'
+      };
+
+      const res = await fetch(envUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const msg = res.ok ? '✅ Sent successfully!' : '❌ Error sending!';
+      document.getElementById('result').textContent = msg;
+    });
+  </script>
+</body>
+</html>

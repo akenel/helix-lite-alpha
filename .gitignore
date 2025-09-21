@@ -29,14 +29,14 @@ cache/
 .n8n/
 n8n-WFs/*.json # If your workflows contain secrets or are just for local testing
 # n8n/config.json # If this contains sensitive local config
-
+data/
 # --- Other Service Specific Secrets/Caches ---
 medusa/config/cache/
 minecraft-data/
 minio/data/
 vault/
 keycloak/
-
+traefik/certs
 # --- OS Generated Files ---
 .DS_Store
 Thumbs.db

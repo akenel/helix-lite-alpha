@@ -1,5 +1,0 @@
-# Helix Hub Configuration
-LAST_PROFILE="core"
-DEFAULT_DOMAIN="localhost"
-ENABLE_SSL="false"
-ENABLE_AUTH="false"

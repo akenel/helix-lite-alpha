@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>✨ Helix-Lite Alpha Capture ✨</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      padding: 2rem;
+      max-width: 700px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+    }
+    form {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .radio-group {
+      margin: 1rem 0;
+    }
+    .radio-group label {
+      font-weight: normal;
+      margin-right: 1rem;
+    }
+    button {
+      margin-top: 1.5rem;
+      padding: 0.75rem;
+      width: 100%;
+      background: #4cafef;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #3a9cd9;
+    }
+    #status {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 6px;
+      display: none;
+    }
+    #status.success {
+      background: #e6ffed;
+      color: #2d7a46;
+    }
+    #status.error {
+      background: #ffe6e6;
+      color: #a33a3a;
+    }
+  </style>
+</head>
+<body>
+  <h1>📩 Helix-Lite Alpha Capture Form</h1>
+
+<iframe width="560" height="315" 
+src="https://www.youtube.com/embed/x-RwPe8o1u8?si=LgA0-2pQ20D1e5kV" 
+title="YouTube video player" 
+frameborder="0" 
+allow="accelerometer; 
+autoplay; 
+clipboard-write; 
+encrypted-media;
+ gyroscope;
+  picture-in-picture; 
+  web-share" 
+referrerpolicy="strict-origin-when-cross-origin" 
+allowfullscreen>
+
+</iframe>
+
+
+  <form id="captureForm">
+    <div class="radio-group">
+      <label><input type="radio" name="mode" value="test" checked> 🧪 Test (Local)</label>
+      <label><input type="radio" name="mode" value="prod"> 🚀 Prod (Ngrok)</label>
+    </div>
+
+    <label for="title">🎩 Title</label>
+    <select id="title" name="title">
+      <option value="Mr">Mr.</option>
+      <option value="Ms">Ms.</option>
+      <option value="Mx">Mx.</option>
+      <option value="Dr">Dr.</option>
+    </select>
+
+    <label for="firstName">📝 First Name</label>
+    <input type="text" id="firstName" name="firstName" required>
+
+    <label for="lastName">📝 Last Name</label>
+    <input type="text" id="lastName" name="lastName" required>
+
+    <label for="email">📧 Email</label>
+    <input type="email" id="email" name="email" required>
+
+    <label for="profileFile">📂 Upload Profile File</label>
+    <input type="file" id="profileFile" name="profileFile" required>
+
+    <label for="briefFile">📂 Upload Marketing Brief</label>
+    <input type="file" id="briefFile" name="briefFile" required>
+
+    <button type="submit">🚀 Submit</button>
+
+    <div id="status"></div>
+  </form>
+
+
+
+
+  <script>
+    const form = document.getElementById('captureForm');
+    const statusBox = document.getElementById('status');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const mode = form.mode.value;
+      const endpoint =
+        mode === 'test'
+          ? 'http://localhost:5678/webhook-test/msg_v1'
+          : 'https://154ddaf37fba.ngrok-free.app/webhook/msg_v1'; // update with live ngrok URL
+
+      const formData = new FormData();
+      formData.append('title', form.title.value);
+      formData.append('first_name', form.firstName.value);
+      formData.append('last_name', form.lastName.value);
+      formData.append('contact_email', form.email.value);
+      formData.append('profile_file', form.profileFile.files[0]);
+      formData.append('brief_file', form.briefFile.files[0]);
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) throw new Error(`Server responded ${res.status}`);
+        const data = await res.json();
+
+        statusBox.style.display = 'block';
+        statusBox.className = 'success';
+        statusBox.innerHTML = `✅ Success!<br>🎉 Response: <pre>${JSON.stringify(data, null, 2)}</pre>`;
+      } catch (err) {
+        statusBox.style.display = 'block';
+        statusBox.className = 'error';
+        statusBox.innerHTML = `❌ Error: ${err.message}<br>⚠️ Please check console/network logs.`;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "parameters": {
+    "url": "http://minio-helper:5000/process",
+    "method": "POST",
+    "jsonParameters": true,
+    "options": {},
+    "bodyParametersJson": "={\n  \"bucket\": \"helix-lite-alpha\",\n  \"tmp_key\": \"contacts/tmp/{{$binary.profile_file.fileName}}\",\n  \"file_type\": \"profile\"\n}"
+  },
+  "name": "🛠️ MinIO Helper Profile",
+  "type": "n8n-nodes-base.httpRequest",
+  "typeVersion": 4,
+  "position": [
+    -240,
+    -260
+  ]
+}

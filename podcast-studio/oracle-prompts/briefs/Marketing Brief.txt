@@ -1,0 +1,10 @@
+Subject: Automated Customer Engagement Platform (ACEP)
+Product: A simple, AI-powered marketing tool for small businesses.
+Key Features:
+- AI-driven personalized email campaigns.
+- Automated customer feedback surveys.
+- Insights dashboard to identify churn risks.
+- Integration with popular e-commerce platforms.
+- Pay-as-you-grow pricing with no long-term contracts.
+Tone: Friendly, empathetic, and solution-oriented. The letter should acknowledge the challenges of running a small business and position ACEP as a simple, affordable tool to solve their specific problems (customer churn, manual work). Avoid corporate jargon. Focus on tangible benefits like saving time and growing the business.
+Call to Action: A single, clear call to action to book a 15-minute demo to see how ACEP can help grow Urban Gardens.

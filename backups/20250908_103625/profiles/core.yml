@@ -1,3 +1,0 @@
-# Core Profile - Essential Services
-# Services: postgres, n8n, filebrowser, sftp-demo
-version: '3.8'

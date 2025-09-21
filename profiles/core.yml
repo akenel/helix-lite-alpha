@@ -1,121 +1,23 @@
-# Docker Compose Configuration for Core Services
-# This configuration sets up essential services including PostgreSQL, Redis, Traefik, Kong,
-# Vault, Authelia, and n8n. Each service is defined with its respective environment variables,
-# volumes, and network settings. 
-# profiles/core.yml
-
 services:
-  postgres:
-    image: postgres:14-alpine
-    container_name: postgres
-    restart: always
-    environment:
-      POSTGRES_USER: helix_user
-      POSTGRES_PASSWORD: helix_pass
-      POSTGRES_DB: helix_db
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-    networks:
-      - core_net
-
-  redis:
-    image: redis:alpine
-    container_name: redis
-    restart: always
-    volumes:
-      - redis_data:/data
-    networks:
-      - core_net
-
-  traefik:
-    image: traefik:v2.11
-    container_name: traefik
-    restart: always
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-    ports:
-      - "8080:8080"  # Traefik Dashboard
-      - "8088:80"    # HTTP
-      - "8443:443"   # HTTPS
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - core_net
-
-  kong:
-    image: kong:latest
-    container_name: kong
-    restart: always
-    environment:
-      KONG_DATABASE: postgres
-      KONG_PG_HOST: postgres
-      KONG_PG_USER: helix_user
-      KONG_PG_PASSWORD: helix_pass
-      KONG_PG_DATABASE: helix_db
-      KONG_PROXY_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_ACCESS_LOG: /dev/stdout
-      KONG_PROXY_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
-    depends_on:
-      - postgres
-    ports:
-      - "8000:8000"
-      - "8001:8001"
-      - "8002:8002"
-    networks:
-      - core_net
-
-  vault:
-    image: vault:1.7.0
-    container_name: vault
-    restart: always
-    cap_add:
-      - IPC_LOCK
-    environment:
-      VAULT_DEV_ROOT_TOKEN_ID: root
-    ports:
-      - "8200:8200"
-    networks:
-      - core_net
-
-  authelia:
-    image: authelia/authelia:latest
-    container_name: authelia
-    restart: always
-    volumes:
-      - ./authelia/config:/config
-    ports:
-      - "9091:9091" # Authelia internal
-    networks:
-      - core_net
-
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: n8n
-    restart: always
-    environment:
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=postgres
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_DATABASE=helix_db
-      - DB_POSTGRESDB_USER=helix_user
-      - DB_POSTGRESDB_PASSWORD=helix_pass
-    ports:
-      - "5678:5678"
-    depends_on:
-      - postgres
-    networks:
-      - core_net
-
-volumes:
-  pg_data:
-  redis_data:
-
-networks:
-  core_net:
-    driver: bridge
-  
+  - n8n
+  - postgres
+  - minio
+  - minio-helper
+  - filebrowser
+  - rabbitmq
+  - vault
+  - grafana
+  - prometheus
+  - traefik
+  - portainer
+  - redis
+  - zookeeper
+  - kafka
+  - kafka-ui
+  - keycloak
+  - mailhog
+  - openwebui
+  - ollama
+  - adminer
+  - pgadmin
+  - healthpage

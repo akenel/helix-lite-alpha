@@ -1,0 +1,4 @@
+flask
+minio
+requests
+jsonify

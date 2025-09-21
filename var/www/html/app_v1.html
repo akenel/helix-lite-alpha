@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>✨ Helix-Lite Alpha Capture ✨</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      padding: 2rem;
+      max-width: 700px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+    }
+    iframe {
+      display: block;
+      margin: 2rem auto;
+      max-width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    form {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .radio-group {
+      margin: 1rem 0;
+    }
+    .radio-group label {
+      font-weight: normal;
+      margin-right: 1rem;
+    }
+    button {
+      margin-top: 1.5rem;
+      padding: 0.75rem;
+      width: 100%;
+      background: #4cafef;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #3a9cd9;
+    }
+    #status {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 6px;
+      display: none;
+    }
+    #status.success {
+      background: #e6ffed;
+      color: #2d7a46;
+    }
+    #status.error {
+      background: #ffe6e6;
+      color: #a33a3a;
+    }
+  </style>
+</head>
+<body>
+  <h1>📩 Helix-Lite Alpha Capture Form</h1>
+
+<iframe width="280" height="150"
+src="https://www.youtube.com/embed/x-RwPe8o1u8?si=LgA0-2pQ20D1e5kV"
+title="YouTube video player"
+frameborder="0"
+allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+referrerpolicy="strict-origin-when-cross-origin"
+allowfullscreen>
+</iframe>
+  <form id="captureForm">
+    <div class="radio-group">
+      <label><input type="radio" name="mode" value="test-local" checked> 🧪 Test (Locally) and manaully activate workflow.</label>
+      <label><input type="radio" name="mode" value="prod-ngrok"> 🚀 Prod (Ngrok) real-live n8n workflow executions.</label>
+    </div>
+
+    <label for="prompt_type">📝 Prompt Type (eg. general)</label>
+    <input type="text" id="prompt_type" name="prompt_type">
+
+    <label for="title">🎩 Title</label>
+    <select id="title" name="title">
+      <option value="Mr">Mr.</option>
+      <option value="Ms">Ms.</option>
+      <option value="Mrs">Mrs.</option>
+      <option value="Dr">Dr.</option>
+    </select>
+
+    <label for="firstName">📝 First Name</label>
+    <input type="text" id="firstName" name="firstName" required>
+
+    <label for="lastName">📝 Last Name</label>
+    <input type="text" id="lastName" name="lastName" required>
+
+    <label for="email">📧 Email</label>
+    <input type="email" id="email" name="email" required>
+
+    <label for="profileFile">📂 Upload Profile File</label>
+    <input type="file" id="profileFile" name="profileFile" required>
+
+    <label for="briefFile">📂 Upload Marketing Brief</label>
+    <input type="file" id="briefFile" name="briefFile" required>
+
+    <button type="submit">🚀 Submit</button>
+
+    <div id="status"></div>
+  </form>
+<!-- put this at the end of your page, just before </body> -->
+<script>
+(function(){
+  const form = document.getElementById('captureForm');
+  const statusBox = document.getElementById('status');
+  const submitBtn = form.querySelector('button[type="submit"]');
+
+  // ----- Toast system -----
+  let toastContainer = document.getElementById('toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'toast-container';
+    document.body.appendChild(toastContainer);
+    const style = document.createElement('style');
+    style.innerHTML = `
+#toast-container{position:fixed;top:1rem;right:1rem;z-index:99999;display:flex;flex-direction:column;gap:.5rem}
+.toast{min-width:220px;padding:10px 14px;border-radius:8px;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.12);opacity:0;transform:translateY(-8px) scale(.98);transition:all .28s}
+.toast.show{opacity:1;transform:translateY(0) scale(1)}
+.toast.info{background:#2563eb}
+.toast.success{background:#16a34a}
+.toast.error{background:#dc2626}
+.toast .small{font-size:12px;margin-top:4px;opacity:.9}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function showToast(type, title, msg, ttl = 5000) {
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.innerHTML = `<strong>${title}</strong><div class="small">${msg}</div>`;
+    toastContainer.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('show'));
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, ttl);
+  }
+
+  function disableForm(disabled = true) {
+    Array.from(form.elements).forEach(el => el.disabled = disabled);
+    submitBtn.disabled = disabled;
+    submitBtn.textContent = disabled ? 'Sending…' : '🚀 Submit';
+  }
+
+  // async function getNgrokUrlFromHelper() {
+  //   try {
+  //     const res = await fetch('http://localhost:5001/ngrok-url'); // Flask helper
+  //     const data = await res.json();
+  //     if (data.ngrokUrl) return data.ngrokUrl;
+  //     throw new Error(data.error || 'No ngrok URL');
+  //   } catch (err) {
+  //     console.error('Ngrok helper failed:', err);
+  //     return null;
+  //   }
+  // }
+
+  // ----- Submit handler -----
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusBox.style.display = 'none';
+
+    disableForm(true);
+
+    // Build FormData
+  
+    function generateUUIDv4() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = crypto.getRandomValues(new Uint8Array(1))[0] & 15;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    const guid = generateUUIDv4();
+    const fd = new FormData();
+    // const guid = Date.now().toString(16) + '-' + Math.random().toString(16).slice(2,10);
+    fd.append('guid', guid);
+    fd.append('mode', form.mode.value);
+    fd.append('prompt_type', document.getElementById('prompt_type').value);
+    fd.append('title', document.getElementById('title').value);
+    fd.append('first_name', document.getElementById('firstName').value);
+    fd.append('last_name', document.getElementById('lastName').value);
+    fd.append('contact_email', document.getElementById('email').value);
+    fd.append('profile_file', document.getElementById('profileFile').files[0]);
+    fd.append('brief_file', document.getElementById('briefFile').files[0]);
+
+    // Decide endpoint
+    let endpoint = "http://localhost:5678/webhook-test/msg_v1";
+
+    if (form.mode.value === "prod-ngrok") {
+      const ngrokUrl = "https://3c810aa33bca.ngrok-free.app"; // hardcoded for now
+      endpoint = `${ngrokUrl}/webhook/msg_v1`;
+    }
+    // if (form.mode.value === "prod-ngrok") {
+    //   const ngrokUrl = await getNgrokUrlFromHelper();
+    //   if (!ngrokUrl) {
+    //     showToast('error', 'Ngrok Error', 'Could not fetch Ngrok URL. Make sure helper is running.');
+    //     disableForm(false);
+    //     return;
+    //   }
+    //   endpoint = `${ngrokUrl}/webhook/msg_v1`;
+    // }
+
+    // Send request
+    try {
+      const res = await fetch(endpoint, { method: 'POST', body: fd });
+      const text = await res.text();
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
+
+      let parsed;
+      try { parsed = JSON.parse(text); } catch(e){}
+      showToast('success', 'Success 🎉', `Sent to ${endpoint}`);
+      statusBox.style.display = 'block';
+      statusBox.className = 'success';
+      statusBox.innerHTML = `<pre>${parsed ? JSON.stringify(parsed, null, 2) : text}</pre>`;
+    } catch (err) {
+      console.error('Upload error:', err);
+      showToast('error', 'Request Failed', err.message);
+      statusBox.style.display = 'block';
+      statusBox.className = 'error';
+      statusBox.innerHTML = `<pre>${err.message}</pre>`;
+    } finally {
+      disableForm(false);
+    }
+  });
+})();
+</script>
+
+
+</body>
+</html>

@@ -1,584 +1,255 @@
-# Docker Compose Configuration for Helix Platform
-# This configuration sets up core services including PostgreSQL, n8n, File Browser, and an SFTP demo server.
-# Each service is defined with its respective profiles, environment variables, volumes, and health checks.
-services: 
+# Docker docker-compose.yml
+# and dynmaic yaml from traefik /home/angel/repos/helix-lite-alpha/traefik/dynamic/dynamic.yml
 
+services:
+  # 🧭 Traefik - Edge Router & Reverse Proxy
+  traefik:
+    image: traefik:v3.5.2
+    container_name: traefik
+    profiles:
+      - core
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=false"           # 🚫 disable docker provider
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    volumes:
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./traefik/certs:/etc/traefik/certs:ro
+    ports:
+      - "80:80"    # HTTP
+      - "443:443"  # HTTPS
+    networks:
+      - helix_net
+  # 🚀 n8n Automation Platform
   n8n:
-    profiles: ["core", "integration", "ecommerce", "lms", "testing"]
     image: n8nio/n8n:latest
-    ports:
-      - "5678:5678"
+    container_name: n8n
+    user: "1000:1000"   # 👈 force container to match host 
+    profiles:
+      - core
+    expose:
+      - "5678"
     environment:
-      N8N_HOST: localhost
-      N8N_PORT: 5678
-      N8N_PROTOCOL: http
-      NODE_ENV: production
-      WEBHOOK_URL: http://localhost:5678/
-      GENERIC_TIMEZONE: UTC
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8npass
+      - DB_POSTGRESDB_DATABASE=n8ndb
     volumes:
-      - n8n_data:/home/node/.n8n
-      - ./n8n/config.json:/home/node/.n8n/config.json:ro
-      - ./podcast-studio:/podcast-studio
+      - ./data/n8n:/home/node/.n8n
     networks:
-      - helix-net
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - helix_net
 
-  filebrowser:
-    profiles: ["core", "integration", "ecommerce", "lms", "testing"]
-    image: filebrowser/filebrowser:latest
-    ports:
-      - "8082:80"
+  # 🗄️ Postgres Database
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    profiles:
+      - core    
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8npass
+      - POSTGRES_DB=n8ndb
     volumes:
-      - filebrowser_data:/srv
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    environment:
-      FB_DATABASE: /srv/filebrowser.db
+      - ./data/postgres:/var/lib/postgresql/data
     networks:
-      - helix-net
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - helix_net
 
-  sftp:
-    profiles: ["core", "integration", "ecommerce", "lms", "testing"]
-    image: atmoz/sftp:latest
-    command: bank:bankpassword:1001
-    networks:
-      - helix-net
-    ports:
-      - "2223:22"
-    depends_on:
-      - postgres
-    environment:
-      SFTP_USERS: "bank:bankpassword:1001"
-      N8N_BASIC_AUTH_ACTIVE: "true"
-      N8N_BASIC_AUTH_USER: "admin"
-      N8N_BASIC_AUTH_PASSWORD: "adminpassword"
-      N8N_HOST: "localhost"
-      N8N_PORT: 5678
-      N8N_PROTOCOL: "http"
-      WEBHOOK_URL: "http://localhost:5678/" 
-      NODE_ENV: "production"
-      GENERIC_TIMEZONE: "UTC" 
-    volumes:
-      - ./sftp/demo:/home/bank/upload:rw
-      - n8n_data:/home/node/.n8n
-      - ./n8n/config.json:/home/node/.n8n/config.json:ro
-
-# Additional Services for Extended Functionality
-# These services can be enabled by activating their respective profiles.
-# For example, to enable LMS services, use the "lms" profile.
-# Similarly, for e-commerce functionalities, use the "ecommerce" profile.
-  redis:
-    profiles: ["lms", "ecommerce", "integration", "core", "testing"]
-    image: redis:alpine
-    ports:
-      - "6379:6379"
-    networks:
-      - helix-net
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  rabbitmq:
-    profiles: ["lms", "ecommerce", "integration", "core"]
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: user
-      RABBITMQ_DEFAULT_PASS: password
-    networks:
-      - helix-net
-    healthcheck:
-      test: ["CMD", "rabbitmqctl", "status"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  vault:
-    profiles: ["integration", "testing", "ecommerce", "lms", "core"]
-    image: vault:1.7.0
-    cap_add:
-      - IPC_LOCK
-    environment:
-      VAULT_DEV_ROOT_TOKEN_ID: root
-    ports:
-      - "8200:8200"
-    networks:
-      - helix-net
-    volumes:
-      - vault_data:/vault/file
+  # 📊 Grafana - Dashboards
   grafana:
-    profiles: ["testing", "integration", "ecommerce", "core"]
     image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
-    networks:
-      - helix-net
+    container_name: grafana
+    user: "0:0"
+    profiles:
+      - core
+    expose:
+      - "3000"
     volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/-/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - ./data/grafana:/var/lib/grafana
+    networks:
+      - helix_net
 
+  # 📈 Prometheus - Metrics
   prometheus:
-    profiles: ["testing", "integration", "ecommerce", "lms", "core"]
     image: prom/prometheus:latest
+    container_name: prometheus
+    profiles:
+      - core
     ports:
       - "9090:9090"
-    networks:
-      - helix-net
     volumes:
-      - ./prometheus/config:/config
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    depends_on:
-      - grafana
-
- # Core Services
-  postgres:
-    # profiles: ["core", "lms", "ecommerce", "integration", "testing"] # You can keep or remove profiles as needed
-    image: postgres:14-alpine
-    environment:
-      POSTGRES_DB: helix_db
-      POSTGRES_USER: helix_user
-      POSTGRES_PASSWORD: helix_pass
-    volumes:
-      - helix_db_data:/var/lib/postgresql/data
-      # If init.sql is only for initial setup and not for migrations, it might be okay.
-      # For migrations, Kong handles schema creation.
-      # - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-
-    # Remove the port mapping unless you need direct access from your host machine
-    # ports:
-    #   - "5432:5432"
-    networks:
-      - helix-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U helix_user -d helix_db"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # This service is for running migrations BEFORE Kong starts
-  # kong-migration:
-  #   # profiles: ["testing", "integration", "ecommerce", "lms", "core"]
-  #   image: kong:3.9.1
-  #   environment:
-  #     KONG_DATABASE: "postgres"
-  #     KONG_PG_HOST: "postgres" # This refers to the 'postgres' service name in this compose file
-  #     KONG_PG_USER: "helix_user"
-  #     KONG_PG_PASSWORD: "helix_pass"
-  #     KONG_PG_DATABASE: "helix_db"
-  #   networks:
-  #     - helix-net
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy # Wait for postgres to be healthy
-  #   command: ["kong", "migrations", "bootstrap"] # The command to run migrations
-  #   volumes:
-  #     - kong_data:/var/lib/kong # Ensure data is persisted
-
-  # kong:
-  #   # profiles: ["testing", "integration", "ecommerce", "lms", "core"]
-  #   image: kong:3.9.1
-  #   environment:
-  #     KONG_DATABASE: "postgres"
-  #     KONG_PG_HOST: "postgres" # This refers to the 'postgres' service name in this compose file
-  #     KONG_PG_USER: "helix_user"
-  #     KONG_PG_PASSWORD: "helix_pass"
-  #     KONG_PG_DATABASE: "helix_db"
-  #     KONG_PROXY_ACCESS_LOG: /dev/stdout
-  #     KONG_ADMIN_ACCESS_LOG: /dev/stdout
-  #     KONG_PROXY_ERROR_LOG: /dev/stderr
-  #     KONG_ADMIN_ERROR_LOG: /dev/stderr
-  #     KONG_ADMIN_LISTEN: "0.0.0.0:8001"
-  #     # Add this line to tell Kong where to find its configuration file
-  #     KONG_CONFIG: "/etc/kong/kong.conf"
-  #   ports:
-  #     - "8000:8000" # Kong proxy port
-  #     - "8001:8001" # Kong admin port
-  #     # - "8002:8002" # You might not need this, depending on your Kong setup
-  #   networks:
-  #     - helix-net
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     kong-migration: # Kong depends on the migration service completing successfully
-  #       condition: service_completed_successfully
-  #   volumes:
-  #     - kong_data:/var/lib/kong # Persist Kong data
-  #     - ./kong/config:/etc/kong # Mount your custom Kong configuration
-  #   healthcheck:
-  #     test: ["CMD", "kong", "health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-
-
-# Kafka and Zookeeper Services
-# These services can be enabled by using the "kafka" profile.
-  kafka:
-    image: wurstmeister/kafka:latest
-    profiles: ["testing", "kafka", "integration", "ecommerce", "core"]
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      # Add this line to fix the error:
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_LOG_RETENTION_HOURS: 168 # 7 days
-      KAFKA_LOG_RETENTION_BYTES: 1073741824 # 1 GB
-      KAFKA_LOG_SEGMENT_BYTES: 1073741824 # 1 GB
-      KAFKA_LOG_CLEANUP_POLICY: delete
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-    labels:
-      - "traefik.enable=false" # ignore Zookeeper because it is not an HTTP service.
-    networks:
-      - helix-net
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-    volumes:
-      - kafka_data:/kafka
-      - ./kafka/logs:/kafka/logs
-    healthcheck:
-      test: ["CMD", "curl", "http://localhost:9092"]
-      interval: 300s
-      timeout: 10s
-      retries: 3
-      start_period: 120s # Initial wait time before starting health checks
-  zookeeper:
-    profiles: ["testing", "kafka", "integration", "ecommerce",  "core"]
-    image: wurstmeister/zookeeper:latest
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-      ZOOKEEPER_INIT_LIMIT: 5
-      ZOOKEEPER_SYNC_LIMIT: 2
-    labels:
-      - traefik.enable=false # ignore Zookeeper because it is not an HTTP service.
-    ports:
-      - "2181:2181"
-    networks:
-      - helix-net
-    healthcheck:
-      test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181", "|", "grep", "imok"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    volumes:
-      - ./zookeeper/data:/data
-      - ./zookeeper/datalog:/datalog
-    depends_on:
-      - postgres
-
-# Development and Testing Services
-# These services are intended for development and testing purposes.
-# They can be enabled by using the "testing" profile.
-  adminer:
-    profiles: ["testing", "integration", "ecommerce",  "extra"]
-    image: adminer:latest
-    ports:
-      - "8083:8080"
-    networks:
-      - helix-net
-    depends_on:
-      postgres:
-        condition: service_healthy  
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-  pgadmin:
-    profiles: ["testing", "integration", "ecommerce",  "core"]
-    image: dpage/pgadmin4:latest
-    environment:
-      PGADMIN_DEFAULT_EMAIL: "admin@example.com"
-      PGADMIN_DEFAULT_PASSWORD: "admin"
-    ports:
-      - "5050:80"
-    networks:
-      - helix-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-    # healthcheck:
-    #   test: ["CMD", "curl", "http://localhost:5050/"]
-    #   interval: 300s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 180s # Initial wait time before starting health checks
-  portainer:
-    profiles: ["testing", "integration", "ecommerce",   "core"]
-    image: portainer/portainer-ce:latest
-    command: -H unix:///var/run/docker.sock
-    ports:
-      - "9000:9000"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
-    networks:
-      - helix-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/api/status"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s # Initial wait time before starting health checks
-  traefik:
-    image: traefik:v3.1 # Use the latest version that's stable for your system
-    profiles: ["testing", "integration", "ecommerce",  "core"]
-    restart: unless-stopped
-    ports:
-      - "80:80"     # For HTTP -> HTTPS redirection
-      - "443:443"   # For HTTPS traffic
-      - "2222:2222" # For SFTP TCP traffic
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro # Mount static config
-      - ./traefik/dynamic:/etc/traefik/dynamic:ro          # Mount dynamic config
-      - ./traefik/certs:/etc/traefik/certs:ro              # Mount certs
+      - ./prometheus/config:/etc/prometheus
+      - ./data/prometheus:/prometheus
     command:
-      - --log.level=INFO
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entryPoints.web.address=:80
-      - --entryPoints.websecure.address=:443
-      - --entryPoints.sftp-tcp.address=:2222
-      - --api.dashboard=true
-      - --api.insecure=true
-      - --providers.file.directory=/etc/traefik/dynamic/
-      - --providers.file.watch=true
-      - --tls.stores.default.defaultCertificate.certFile=/etc/traefik/certs/helix-local.crt
-      - --tls.stores.default.defaultCertificate.keyFile=/etc/traefik/certs/helix-local.key
-
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
     networks:
-      - helix-net
-    environment:
-      - TRAEFIK_LOG_LEVEL=DEBUG
-      - TRAEFIK_PROVIDERS_DOCKER=true
-      - TRAEFIK_PROVIDERS_FILE_WATCH=true
-      - TRAEFIK_ENTRYPOINTS_WEB_ADDRESS=:80
-      - TRAEFIK_ENTRYPOINTS_WEBSECURE_ADDRESS=:443
-      - TRAEFIK_API_DASHBOARD=true
-      - TRAEFIK_API=true
-      - TRAEFIK_ENTRYPOINTS_WEB_HTTP_REDIRECTIONS_ENTRYPOINT_TO=websecure
-      - TRAEFIK_ENTRYPOINTS_WEB_HTTP_REDIRECTIONS_ENTRYPOINT_PERMANENT=true
-    depends_on:
-      - postgres
-  # traefik dynamic configuration file (traefik/traefik_dynamic.yml)
-  # This file defines the routing rules and services for Traefik.
-  # It includes rules for accessing the Traefik dashboard, Moodle, n8n, and Keycloak services.
-  # Each service is associated with a specific hostname and secured with TLS.
-  # Middlewares are used to enhance security, such as adding secure headers for Keycloak.
-  # Make sure to adjust the hostnames and services according to your setup.
-  # Save this content in a file named traefik_dynamic.yml in the traefik directory.
-  # Example: ./traefik/traefik_dynamic.yml
-  # Note: Ensure that the certFile path matches your actual certificate location.
-  # Adjust the certResolver if you are using a different method for obtaining certificates.
-  # This configuration assumes you have a certificate named helix-local.crt for the domain helix.local.
-  # You may need to create or obtain this certificate separately.
-  # The services defined here should match the service names in your docker-compose.yml file.
-  # Ensure that the services are running and accessible for Traefik to route traffic correctly.
-  # You can customize the rules and middlewares as needed for your specific requirements.
-  # For more information on Traefik configuration, refer to the official documentation: https://doc.traefik.io/traefik/
-  # This file is a crucial part of your Traefik setup, so review it carefully.
-  # If you encounter issues, check the Traefik logs for troubleshooting.
-  # Remember to restart the Traefik service after making changes to this file.
-  # This ensures that Traefik picks up the new configuration.
-  # Always test your configuration in a safe environment before deploying to production.
-  # This helps prevent downtime and ensures that your services remain accessible.
-  # Keep this file updated as you add or remove services from your docker-compose setup.
-  # Regularly review and update your TLS certificates to maintain secure connections.
-  # Consider using Let's Encrypt or another certificate authority for automated certificate management.
-  # Ensure that your DNS settings point to the correct IP address for the hostnames used in this configuration.
-  # This is essential for proper routing and access to your services.
-  # If you are using a reverse proxy or load balancer in front of Traefik, ensure it is configured correctly.
-  # This includes forwarding the appropriate headers and traffic to Traefik.
-  # Monitor your Traefik instance and services to ensure they are running smoothly.   
-  minio:
-    profiles: ["testing", "integration", "ecommerce", "core"]
-    image: minio/minio:latest
-    command: server /data
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9001:9000"
-    volumes:
-      - ./minio/data:/data
-    networks:
-      - helix-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-  moodle:
-    profiles: ["lms", "testing"]
-    image: moodlehq/moodleapp:latest
-    environment:
-      MOODLE_DATABASE_HOST: postgres
-      MOODLE_DATABASE_PORT_NUMBER: 5432
-      MOODLE_DATABASE_USER: helix_user
-      MOODLE_DATABASE_PASSWORD: helix_pass
-      MOODLE_DATABASE_NAME: helix_db
-      MOODLE_USERNAME: admin
-      MOODLE_PASSWORD: adminpassword
-      MOODLE_EMAIL:
-    ports:
-      - "9002:80"  # Changed from 8083 to 9002
-    volumes:
-      - moodle_data:/bitnami/moodle
-    networks:
-      - helix-net
-    depends_on:
-      postgres:
-        condition: service_healthy  
-
-  mailhog:
-    profiles: ["lms", "testing", "integration", "core"]
-    image: mailhog/mailhog:latest
-    ports:
-      - "8025:8025" # Web UI
-      - "1025:1025" # SMTP
-    networks:
-      - helix-net
-    healthcheck:
-      test: ["CMD", "curl", "http://localhost:8025"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s # Initial wait time before starting health checks
-
-  medusa:
-    image: lscr.io/linuxserver/medusa:latest
-    profiles: ["ecommerce", "testing"]
-    environment:
-      - PUID=911  # Your user ID from the logs
-      - PGID=911  # Your group ID from the logs
-      - TZ=Etc/UTC # Change this to your timezone, e.g., 'America/New_York'
-    volumes:
-      - ./medusa/config:/config
-      - /path/to/tv-shows:/tv
-      - /path/to/downloads:/downloads
-    ports:
-      - 8081:8081
+      - helix_net
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
     restart: unless-stopped
+    volumes:
+      - ./data/ollama:/root/.ollama   # persist models & configs
+    ports:
+      - "11434:11434"   # Ollama API
     networks:
-      - helix-net
-    healthcheck:
-      test: ["CMD", "curl", "http://localhost:8081"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
- 
+      - helix_net
+
+  # 📧 MailHog - Email Testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    profiles:
+      - core
+    expose:
+      - "8025"
+    networks:
+      - helix_net
+
+  # 🐘 PgAdmin - Postgres UI
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    profiles:
+      - core
+    expose:
+      - "80" # 👈 Corrected port
+    ports:
+      - "5050:80" # 👈 Corrected mapping to container's port 80
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@helix.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    networks:
+      - helix_net
+
+  # 👥 Keycloak - Identity Provider
   keycloak:
-    profiles: ["ecommerce", "testing", "integration", "core"]
     image: quay.io/keycloak/keycloak:latest
-    command: start-dev
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.keycloak.rule=Host(`keycloak.helix.local`)"
-      - "traefik.http.routers.keycloak.entrypoints=websecure"
-      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
-      - "traefik.http.routers.keycloak.tls=true"
-      - "traefik.http.middlewares.keycloak-headers.headers.customResponseHeaders.X-Frame-Options=SAMEORIGIN"
-      - "traefik.http.middlewares.keycloak-headers.headers.contentSecurityPolicy=frame-ancestors 'self'"
-      - "traefik.http.routers.keycloak.middlewares=keycloak-headers"  
+    container_name: keycloak
+    profiles:
+      - core
+    command: ["start-dev"]
+    ports:
+      - "8080"
     environment:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
-      - DB_VENDOR=POSTGRES
-      - DB_ADDR=postgres
-      - DB_DATABASE=helix_db
-      - DB_USER=helix_user
-      - DB_PASSWORD=helix_pass
-      - KC_HOSTNAME_PORT=8080
-      - KC_HOSTNAME_STRICT=false
-      - KC_HOSTNAME=keycloak.helix.local
-      - KC_HTTP_PORT=8080
-      - KC_PROXY=passthrough
-      - KC_ADMIN_URL=http://keycloak.helix.local:8080
-      - KC_WILDCARD_CLIENTS=true
-      # - KC_SSL=off
-      # - KC_TLS=off
-    ports:
-      - "8084:8080"
     networks:
-      - helix-net
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - helix_net
 
-  minecraft:
-    image: itzg/minecraft-server:latest
+  # 🔐 Vault - Secret Management
+  vault:
+    image: hashicorp/vault:latest
+    container_name: vault
     profiles:
-      - "testing"
-      - "gaming"
-    ports:
-      - "25565:25565"   # Default Minecraft port
-    environment:
-      EULA: "TRUE"      # Must accept Minecraft EULA
-      VERSION: "1.21.1" # Choose version (latest stable Java)
-      MEMORY: "2G"      # Adjust based on your laptop RAM
-    volumes:
-      - ./minecraft-data:/data   # persistent world storage
-    restart: unless-stopped
+      - core
+    expose:
+      - "8200"
     networks:
-      - helix-net
-    healthcheck:
-      test: ["CMD", "true"]
-      interval: 30s
-      timeout: 5s
-      retries: 1
+      - helix_net
 
-volumes:
-  minecraft_data:
-  helix_db_data:
-  n8n_data:
-  filebrowser_data:
-  sftp_data:
-  mongo_data:
-  pg_data:
-  redis_data: 
-  vault_data:
-  rabbitmq_data:
-  rabbitmq_logs:
-  grafana_data:
-  prometheus_data:
-  kong_data:
-  kafka_data:
-  keycloak_data:
-  zookeeper_data:
-  portainer_data:
-  adminer_data:
-  pgadmin_data:
-  traefik_data:
-  moodle_data:
-  minio_data:
+  # 🗂️ MinIO - Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    profiles:
+      - core
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000" # API
+      - "9001" # Console
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - ./data/minio:/data
+    networks:
+      - helix_net
+
+  # 🌐 OpenWebUI
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: openwebui
+    profiles:
+      - core
+    ports:
+      - "3001"
+    environment:
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      - CORS_ALLOW_ORIGIN=https://openwebui.helix.local
+    networks:
+      - helix_net
+   # 📂 FileBrowser
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: filebrowser
+    profiles:
+      - core
+    expose:
+      - "80" # 👈 Corrected port
+    ports:
+      - "8082:80" # 👈 Corrected mapping to container's port 80
+    volumes:
+      - ./data/files:/srv
+    networks:
+      - helix_net
+
+  # 📚 Moodle (LMS)
+  moodle:
+    image: bitnami/moodle:latest
+    container_name: moodle
+    profiles:
+      - lms
+    ports:
+      - "80"
+    networks:
+      - helix_net
+
+  # 🗄️ Adminer
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    profiles:
+      - core
+    expose:
+      - "8080" # 👈 This was already correct
+    ports:
+      - "8083:8080" # 👈 This was already correct
+    networks:
+      - helix_net
+
+  # 🛒 Medusa (E-commerce)
+  medusa:
+    image: medusajs/medusa:latest
+    container_name: medusa
+    profiles:
+      - lms
+    ports:
+      - "8081"
+    networks:
+      - helix_net
+
+  # ⚓ Portainer - Container Management
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    profiles:
+      - core
+    expose:
+      - "9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/portainer:/data
+    networks:
+      - helix_net
 
 networks:
-  helix-net:
-    external: false
-  default:
-    external: false
-# Additional Services for Advanced Use Cases
+  helix_net:
+    driver: bridge
