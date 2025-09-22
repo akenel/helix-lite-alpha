@@ -1,4 +1,5 @@
-flask
+jsonify
+Flask
 minio
 requests
-jsonify
+flask-cors 

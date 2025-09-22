@@ -23,6 +23,16 @@ services:
       - "443:443"  # HTTPS
     networks:
       - helix_net
+  helix-app:
+      build:
+        context: ./app  # This tells Docker Compose to look in the 'app' folder
+        dockerfile: Dockerfile
+      container_name: helix-app
+      restart: unless-stopped
+      depends_on:
+        - minio # Ensure MinIO is up and running before this service starts
+      networks:
+        - helix_net
   # 🚀 n8n Automation Platform
   n8n:
     image: n8nio/n8n:latest
@@ -36,26 +46,75 @@ services:
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=postgres
       - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=n8n
-      - DB_POSTGRESDB_PASSWORD=n8npass
-      - DB_POSTGRESDB_DATABASE=n8ndb
-    volumes:
-      - ./data/n8n:/home/node/.n8n
+      - DB_POSTGRESDB_USER=${N8N_DB_USER}
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASS}
+      - DB_POSTGRESDB_DATABASE=${N8N_DB_NAME}
     networks:
       - helix_net
 
+  redis:
+    image: redis:7
+    container_name: redis
+    profiles:
+      - core
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - helix_net
+    expose:
+      - "6379"
+    ports:
+      - "6379:6379"   # local debug access
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis-ui:
+    image: redislabs/redisinsight:latest
+    container_name: redis-ui
+    profiles:
+      - core
+    expose:
+      - "5540"   # only for Traefik, not published to host
+    networks:
+      - helix_net
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    profiles:
+      - core
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - ./data/rabbitmq:/var/lib/rabbitmq
+    networks:
+      - helix_net
+    expose:
+      - "5672"   # AMQP
+      - "15672"  # Management UI
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   # 🗄️ Postgres Database
   postgres:
-    image: postgres:15
+    image: postgres:latest
     container_name: postgres
     profiles:
       - core    
     expose:
       - "5432"
     environment:
-      - POSTGRES_USER=n8n
-      - POSTGRES_PASSWORD=n8npass
-      - POSTGRES_DB=n8ndb
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     networks:
@@ -80,7 +139,6 @@ services:
     image: prom/prometheus:latest
     container_name: prometheus
     user: "0:0"
-
     profiles:
       - core
     ports:
@@ -93,6 +151,11 @@ services:
       - "--storage.tsdb.path=/prometheus"
     networks:
       - helix_net
+    healthcheck:
+      test: ["CMD-SHELL", "ps -o comm= 1 | grep prometheus || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -103,7 +166,6 @@ services:
       - "11434:11434"   # Ollama API
     networks:
       - helix_net
-
   # 📧 MailHog - Email Testing
   mailhog:
     image: mailhog/mailhog:latest
@@ -114,7 +176,6 @@ services:
       - "8025"
     networks:
       - helix_net
-
   # 🐘 PgAdmin - Postgres UI
   pgadmin:
     image: dpage/pgadmin4
@@ -126,26 +187,32 @@ services:
     ports:
       - "5050:80" # 👈 Corrected mapping to container's port 80
     environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@helix.com
-      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
     networks:
       - helix_net
-
   # 👥 Keycloak - Identity Provider
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     container_name: keycloak
+    command: ["start-dev", "--http-port=8080", "--hostname-strict=false"]
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=${KC_BOOTSTRAP_ADMIN_USERNAME}
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      - KEYCLOAK_DB_USER=${KEYCLOAK_DB_USER}
+      - KEYCLOAK_DB_PASS=${KEYCLOAK_DB_PASS}
+      - KEYCLOAK_DB_NAME=${KEYCLOAK_DB_NAME}
+      - KC_PROXY=edge
+      - KC_HOSTNAME=${KC_HOSTNAME}
+      - KC_HOSTNAME_STRICT=false
+      - KC_HTTP_ENABLED=true
+      - KC_HTTP_PORT=8080
+    ports:
+      - "8080:8080" # This port can eventually be removed once we are sure it works
     profiles:
       - core
-    command: ["start-dev"]
-    ports:
-      - "8080"
-    environment:
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin
     networks:
       - helix_net
-
   # 🔐 Vault - Secret Management
   vault:
     image: hashicorp/vault:latest
@@ -156,7 +223,11 @@ services:
       - "8200"
     networks:
       - helix_net
-
+    healthcheck:
+      test: ["CMD-SHELL", "ps -o comm= 1 | grep vault || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
   # 🗂️ MinIO - Object Storage
   minio:
     image: minio/minio:latest
@@ -168,28 +239,33 @@ services:
       - "9000" # API
       - "9001" # Console
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     volumes:
       - ./data/minio:/data
     networks:
       - helix_net
-
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 # 🌐 OpenWebUI
   openwebui:
-      image: ghcr.io/open-webui/open-webui:main
-      container_name: openwebui
-      profiles:
-        - core
-      expose:
-        - 3001
-      ports:
-        - "3001:3001"
-      environment:
-        - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
-        - CORS_ALLOW_ORIGIN=https://openwebui.helix.local
-      networks:
-        - helix_net
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: openwebui
+    profiles:
+      - core
+    expose:
+      - "3001"
+    ports:
+      - "3001:8080"
+    environment:
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      - CORS_ALLOW_ORIGIN=https://openwebui.helix.local,http://localhost:3001
+    networks:
+      - helix_net
+
    # 📂 FileBrowser
   filebrowser:
     image: filebrowser/filebrowser:latest
@@ -204,7 +280,11 @@ services:
       - ./data/files:/srv
     networks:
       - helix_net
-
+    healthcheck:
+      test: ["CMD-SHELL", "ps -o comm= 1 | grep filebrowser || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
   # 📚 Moodle (LMS)
   moodle:
     image: bitnami/moodle:latest
@@ -228,7 +308,6 @@ services:
       - "8083:8080" # 👈 This was already correct
     networks:
       - helix_net
-
   # 🛒 Medusa (E-commerce)
   medusa:
     image: medusajs/medusa:latest
@@ -253,6 +332,14 @@ services:
       - ./data/portainer:/data
     networks:
       - helix_net
+
+volumes:
+  keycloak_data:
+  postgres_data:
+  vault_data:
+  prometheus_data: 
+  traefik_data:
+  n8n_data:
 
 networks:
   helix_net:
