@@ -23,17 +23,15 @@ services:
       - "443:443"  # HTTPS
     networks:
       - helix_net
+  # Your new app with correct indentation
   helix-app:
-      build:
-        context: ./app  # This tells Docker Compose to look in the 'app' folder
-        dockerfile: Dockerfile
-      container_name: helix-app
-      restart: unless-stopped
-      depends_on:
-        - minio # Ensure MinIO is up and running before this service starts
-      networks:
-        - helix_net
-  # 🚀 n8n Automation Platform
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: helix-app
+    restart: unless-stopped
+    networks:
+      - helix_net
   n8n:
     image: n8nio/n8n:latest
     container_name: n8n

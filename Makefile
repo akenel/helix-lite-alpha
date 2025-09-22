@@ -4,9 +4,15 @@ PROJECT = helix-lite-alpha
 
 # Profiles
 PROFILES = core testing integration ecommerce
+.PHONY: helix-app
+
+helix-app:
+	docker compose build --no-cache helix-app
+	docker compose up -d helix-app
 
 help:
 	@echo "📖 Available commands:"
+	@echo "  make helix-app             # 🚀 Rebuilds and starts the Helix app"
 	@echo "  make up profile=core       # 🚀 Start stack with profile"
 	@echo "  make down profile=core     # 🛑 Stop stack with profile"
 	@echo "  make restart profile=core  # 🔄 Restart stack with profile"
