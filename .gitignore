@@ -48,3 +48,7 @@ Thumbs.db
 *.pem
 *.key
 .ssh/git staru
+
+# --- Keep empty certs folder in Git ---
+traefik/certs/*
+!traefik/certs/.gitkeep
