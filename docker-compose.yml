@@ -79,13 +79,15 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
+    user: "0:0"
+
     profiles:
       - core
     ports:
       - "9090:9090"
     volumes:
       - ./prometheus/config:/etc/prometheus
-      - ./data/prometheus:/prometheus
+      - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -173,19 +175,21 @@ services:
     networks:
       - helix_net
 
-  # 🌐 OpenWebUI
+# 🌐 OpenWebUI
   openwebui:
-    image: ghcr.io/open-webui/open-webui:main
-    container_name: openwebui
-    profiles:
-      - core
-    ports:
-      - "3001"
-    environment:
-      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
-      - CORS_ALLOW_ORIGIN=https://openwebui.helix.local
-    networks:
-      - helix_net
+      image: ghcr.io/open-webui/open-webui:main
+      container_name: openwebui
+      profiles:
+        - core
+      expose:
+        - 3001
+      ports:
+        - "3001:3001"
+      environment:
+        - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+        - CORS_ALLOW_ORIGIN=https://openwebui.helix.local
+      networks:
+        - helix_net
    # 📂 FileBrowser
   filebrowser:
     image: filebrowser/filebrowser:latest

@@ -37,6 +37,9 @@ minio/data/
 vault/
 keycloak/
 traefik/certs
+*.crt
+*.pem
+
 # --- OS Generated Files ---
 .DS_Store
 Thumbs.db
