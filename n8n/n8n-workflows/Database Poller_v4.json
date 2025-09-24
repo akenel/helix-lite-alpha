@@ -1,0 +1,375 @@
+{
+  "name": "Database Poller_v4",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "helix_n8n_table",
+          "mode": "list",
+          "cachedResultName": "helix_n8n_table"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "status",
+              "value": "10_initial_upload"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -384,
+        -528
+      ],
+      "name": "10_initial_upload | SELECT id",
+      "id": "2ff4ad25-c6b6-4bea-9038-2d2dcade32fd",
+      "credentials": {
+        "postgres": {
+          "id": "iJ16eIYObMOWa5gd",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -608,
+        -528
+      ],
+      "name": "Scheduled CRON Trigger",
+      "id": "9e792515-a32c-489c-bd11-94a19f45430c"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "helix_n8n_table",
+          "mode": "list",
+          "cachedResultName": "helix_n8n_table"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "30_sent_to_redis",
+            "id": "={{ $json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "user_email",
+              "displayName": "user_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "profile_url",
+              "displayName": "profile_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "brief_url",
+              "displayName": "brief_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "webhook_triggered",
+              "displayName": "webhook_triggered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "offer_status",
+              "displayName": "offer_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "booking_link",
+              "displayName": "booking_link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        64,
+        -528
+      ],
+      "id": "671d34df-d10c-4260-9a7b-22d8fa53d6e9",
+      "name": "20_processing | UPDATE id Status",
+      "credentials": {
+        "postgres": {
+          "id": "iJ16eIYObMOWa5gd",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "=ai_processing_queue",
+        "messageData": "={{ $json.id }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -528
+      ],
+      "id": "a80f424b-f399-42d0-899b-0489abf35566",
+      "name": "Redis Push | GUID",
+      "credentials": {
+        "redis": {
+          "id": "sy8aHhp3PXM0FPzP",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $node[\"Ngrok Status Check\"].json.url + '/api/ai-flow' }}",
+        "sendBody": true,
+        "specifyBody": "={{ { \"id\": $json.id, \"mode\": $node[\"Ngrok Status Check\"].json.mode } }}",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        -528
+      ],
+      "id": "5796fca3-6e5a-42fb-b65e-8e73bb549c70",
+      "name": "AI Flow Trigger"
+    },
+    {
+      "parameters": {
+        "url": "=http://helix-app:5001/api/ngrok_status",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        288,
+        -528
+      ],
+      "id": "60bb3645-5d70-4470-9439-9cd75629fc63",
+      "name": "Ngrok Status Check"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "10_initial_upload | SELECT id": {
+      "main": [
+        [
+          {
+            "node": "Redis Push | GUID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduled CRON Trigger": {
+      "main": [
+        [
+          {
+            "node": "10_initial_upload | SELECT id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "20_processing | UPDATE id Status": {
+      "main": [
+        [
+          {
+            "node": "Ngrok Status Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Push | GUID": {
+      "main": [
+        [
+          {
+            "node": "20_processing | UPDATE id Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ngrok Status Check": {
+      "main": [
+        [
+          {
+            "node": "AI Flow Trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "61d506b8-c0f4-43ec-babf-105e48e4e9f9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7d8dc3dd9b8c952ba429a7008da6b60df1bb263900deca0532f26b655282b952"
+  },
+  "id": "1R0GW4wh0wnzP6K5",
+  "tags": [
+    {
+      "createdAt": "2025-09-23T14:46:10.520Z",
+      "updatedAt": "2025-09-23T14:46:10.520Z",
+      "id": "U4jYtLAl6VhlP3mp",
+      "name": "DEMO"
+    },
+    {
+      "createdAt": "2025-09-24T13:16:17.214Z",
+      "updatedAt": "2025-09-24T13:16:17.214Z",
+      "id": "IU7FuCL3zEU6P8VS",
+      "name": "PoC"
+    },
+    {
+      "createdAt": "2025-09-23T19:23:11.374Z",
+      "updatedAt": "2025-09-23T19:23:11.374Z",
+      "id": "4LvSao8kolYxIYAU",
+      "name": "Prod"
+    }
+  ]
+}
