@@ -4,18 +4,21 @@ PROJECT = helix-lite-alpha
 
 # Profiles
 PROFILES = core testing integration ecommerce
-.PHONY: helix-app
 
+.PHONY: helix-app up down restart ps logs clean creds vault-init links reset
+
+# Rebuild and start Helix app inside core stack
 helix-app:
-	docker compose build --no-cache helix-app
-	docker compose up -d helix-app
+	$(COMPOSE) build --no-cache helix-app
+	$(COMPOSE) up -d helix-app
 
 help:
 	@echo "📖 Available commands:"
-	@echo "  make helix-app             # 🚀 Rebuilds and starts the Helix app"
 	@echo "  make up profile=core       # 🚀 Start stack with profile"
 	@echo "  make down profile=core     # 🛑 Stop stack with profile"
 	@echo "  make restart profile=core  # 🔄 Restart stack with profile"
+	@echo "  make helix-app             # 🚀 Rebuild/start only Helix app"
+	@echo "  make reset                 # 🧹 Reset Redis + MinIO buckets"
 	@echo "  make ps                    # 📋 Show running containers"
 	@echo "  make logs profile=core     # 📜 Show logs for profile"
 	@echo "  make clean                 # 🧹 Remove all containers & volumes"
@@ -45,6 +48,15 @@ clean:
 	docker system prune -af --volumes
 	@echo "🧹 Cleaned up stack $(PROJECT)"
 
+reset:
+	@echo "🧹 Resetting Redis & MinIO bucket 'helix-lite-alpha'..."
+	# Flush Redis (all keys)
+	docker exec -it redis redis-cli FLUSHALL
+	# Clear MinIO bucket contents (requires mc client installed)
+	mc alias set local http://localhost:9000 minioadmin minioadmin
+	mc rm -r --force local/helix-lite-alpha
+	@echo "✅ Redis + [Optional Manual MinIO reset via http://localhost:9001/browser/helix-lite-alpha (minioadmin/minioadmin)] complete."
+
 creds:
 	@echo "🔑 Service Credentials"
 	@echo "-----------------------"
@@ -56,9 +68,6 @@ creds:
 
 vault-init:
 	@echo "🧰 Initializing Vault and retrieving root token..."
-	@echo "---------------------------------------------------"
-	@echo "This command should only be run the very first time you start the Vault container."
-	@echo "Storing the token in a text file is a security risk. Use a proper secret manager."
 	@docker exec -it helix-lite-alpha_vault_1 vault operator init > vault-init.txt
 	@echo "✅ Vault initialization complete. Root token saved to vault-init.txt"
 	@echo "Please secure this token and delete the file immediately."

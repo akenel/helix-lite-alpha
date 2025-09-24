@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #response {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🍒️ File Upload Form 🩻️</h1>
+    
+    <form id="uploadForm" enctype="multipart/form-data">
+        <label for="mode">Select Mode:</label>
+        <label>
+            <input type="radio" name="mode" value="live" checked> Live Production Webhook
+        </label>
+        <label>
+            <input type="radio" name="mode" value="test"> Test Webhook
+        </label>
+
+        <label for="profile_file">Profile File:</label>
+        <input type="file" id="profile_file" name="profile_file" required>
+
+        <label for="brief_letter">Brief Letter:</label>
+        <input type="file" id="brief_letter" name="brief_letter" required>
+
+        <label for="job_id">Job ID:</label>
+        <input type="text" id="job_id" name="job_id" required>
+
+        <label for="user_email">User Email:</label>
+        <input type="email" id="user_email" name="user_email" required>
+
+        <button type="submit">Upload</button>
+    </form>
+
+    <div id="response"></div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const responseDiv = document.getElementById('response');
+
+            // Determine the API endpoint based on the selected mode
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            const apiUrl = mode === 'live' ? 'http://0.0.0.0:5001/api/upload' : 'https://2011a8807b8c.ngrok-free.app/api/upload';  // Replace with your actual ngrok URL
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    responseDiv.innerHTML = `
+                        <h3>Upload Successful!</h3>
+                        <p>UUID: ${result.uuid}</p>
+                        <p>Profile URL: <a href="${result.profile_url}" target="_blank">${result.profile_url}</a></p>
+                        <p>Brief URL: <a href="${result.brief_url}" target="_blank">${result.brief_url}</a></p>
+                        <p>Status: ${result.status}</p>
+                        <p>Webhook Triggered: ${result.webhook_triggered}</p>
+                    `;
+                } else {
+                    responseDiv.innerHTML = `<h3>Error:</h3><pre>${JSON.stringify(result, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                responseDiv.innerHTML = `<h3>Error:</h3><pre>${error.message}</pre>`;
+            }
+        });
+    </script>
+</body>
+</html>

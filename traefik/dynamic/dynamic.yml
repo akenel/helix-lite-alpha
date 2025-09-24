@@ -1,10 +1,16 @@
 http:
+# In traefik/dynamic/dynamic.yml
+  middlewares:
+    stripprefix:
+      stripPrefix:
+        prefixes:
+          - /
   routers:
-    # Each service gets a pretty hostname 🥂
-    helix-app:
+    helix-app-router:
       rule: "Host(`helix-app.helix.local`)"
-      service: helix-app
-      entryPoints: [websecure]
+      service: helix-app-service
+      entryPoints:
+        - websecure
       tls: {}
     redis:
       rule: "Host(`redis.helix.local`)"
@@ -185,8 +191,8 @@ http:
       loadBalancer:
         servers:
           - url: "http://rabbitmq:15672"  
-    helix-app:
+    helix-app-service:
       loadBalancer:
         servers:
-          - url: "http://helix-app:5001"  
+          - url: "http://helix-app:5001
 

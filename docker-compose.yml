@@ -25,31 +25,49 @@ services:
       - helix_net
   # Your new app with correct indentation
   helix-app:
+    container_name: helix-app
+    profiles:
+        - core
     build:
       context: ./app
       dockerfile: Dockerfile
-    container_name: helix-app
     restart: unless-stopped
+    volumes:
+      - ./app/src:/app/src  
+    ports:
+      - "5001:8000" 
+    depends_on:
+      - postgres
     networks:
       - helix_net
   n8n:
     image: n8nio/n8n:latest
     container_name: n8n
-    user: "1000:1000"   # 👈 force container to match host 
+    restart: unless-stopped
     profiles:
       - core
-    expose:
-      - "5678"
+    user: "1000:1000"   # Ensure this matches your host user if needed
     environment:
+      - N8N_RUNNERS_ENABLED=${N8N_RUNNERS_ENABLED}
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=${N8N_BLOCK_ENV_ACCESS_IN_NODE}
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_USER=${N8N_DB_USER}
       - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASS}
       - DB_POSTGRESDB_DATABASE=${N8N_DB_NAME}
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+    ports:
+          - "5678:5678"  # This maps port 5678 on your host to port 5678 on the n8n container
+    volumes:
+      - ./n8n_data:/root/.n8n
+    depends_on:
+      - postgres
     networks:
       - helix_net
-
   redis:
     image: redis:7
     container_name: redis
@@ -114,7 +132,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - helix_net
 
@@ -234,13 +252,13 @@ services:
       - core
     command: server /data --console-address ":9001"
     ports:
-      - "9000" # API
-      - "9001" # Console
+      - "9000:9000"
+      - "9001:9001"
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     volumes:
-      - ./data/minio:/data
+      - minio_data:/data
     networks:
       - helix_net
     healthcheck:
@@ -248,6 +266,15 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+# 🔹 minio cli inside the container (nice to have or use UI)
+  mc:
+    image: minio/mc
+    depends_on:
+      - minio
+    container_name: minio-mc
+    profiles:
+      - core
+    entrypoint: ["tail", "-f", "/dev/null"] # keep it running for exec
 # 🌐 OpenWebUI
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
@@ -330,7 +357,33 @@ services:
       - ./data/portainer:/data
     networks:
       - helix_net
-
+# 🆕 Add the ngrok service
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok
+    restart: always
+    profiles:
+      - core
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    # ❌ REMOVE THIS LINE (Causes the conflict)
+    # ports:
+    #   - "4040:4040" 
+    # 
+    # Add a network exposure for the API (This is often implicit but good practice)
+    expose:
+      - "4040" # Expose the API port internally
+    networks:
+      - helix_net
+    command:
+      - "http"
+      - "n8n:5678"
+      - "--log"
+      - "stdout"
+      - "--log-format"
+      - "json"
+      - "--api"  # Keep the API enabled
+      - "0.0.0.0:4040" # Make the API accessible on the internal network
 volumes:
   keycloak_data:
   postgres_data:
@@ -338,6 +391,7 @@ volumes:
   prometheus_data: 
   traefik_data:
   n8n_data:
+  minio_data:
 
 networks:
   helix_net:
